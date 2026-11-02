@@ -48,6 +48,15 @@ stack_cost = 0.12       # score loss per stacked pair
 max_long_nonseed = -1   # hard limit (reject grid if exceeded); -1 = off
 max_stack_pairs = -1    # hard limit; -1 = off
 
+# Real fill check against the word list (see fillcheck.py).
+[fillcheck]
+enabled = true          # skip grids that are provably impossible to fill
+max_checked = 3000      # ranked grids to run the quick impossibility check on
+sample_fill = true      # also try a full fill on each shown grid
+time_limit = 10.0       # seconds per full-fill attempt
+branch = 40             # candidate words tried per slot in the full fill
+keep_unproven = true    # show grids the quick check couldn't rule out, even if the full fill timed out
+
 [flow]
 weighting = "none"      # "none" (default, per article) or "length"
 

@@ -14,6 +14,7 @@ from pathlib import Path
 
 from .config import load_config
 from .export import export_all, report
+from .fillcheck import FILLED, IMPOSSIBLE, Filler
 from .grid import Grid, violations
 from .scoring import score_candidate
 from .search import Candidate, Searcher
@@ -99,7 +100,11 @@ def cmd_find(args) -> int:
     if not best:
         print("no valid grids found; try more --attempts, other seeds, or a wider --max-blocks")
         return 1
-    ranked = sorted(best.values(), key=lambda s: -s.score)[: args.top]
+    ranked_all = sorted(best.values(), key=lambda s: -s.score)
+    ranked = _apply_fillcheck(ranked_all, cfg, wl, args) if wl is not None else ranked_all[: args.top]
+    if not ranked:
+        print("no grid passed the fill check; try more --attempts, different seeds, or fewer seeds")
+        return 1
     outdir = Path(args.out) / f"run-{seed}"
     for rank, s in enumerate(ranked, 1):
         print()
@@ -107,6 +112,39 @@ def cmd_find(args) -> int:
         files = export_all(s, rank, outdir)
         print("files: " + ", ".join(str(f) for f in files))
     return 0
+
+
+def _apply_fillcheck(ranked_all, cfg, wl, args):
+    fc = cfg["fillcheck"]
+    if not fc["enabled"] or getattr(args, "no_fillcheck", False):
+        return ranked_all[: args.top]
+    time_limit = args.fill_time if getattr(args, "fill_time", None) is not None else fc["time_limit"]
+    t = time.time()
+    survivors, impossible, checked = [], 0, 0
+    for s in ranked_all[: fc["max_checked"]]:
+        checked += 1
+        f = Filler(s.cand.grid, s.cand.letters, set(s.cand.seed_slots.values()), wl)
+        r = f.arc_check()
+        if r.status == IMPOSSIBLE:
+            impossible += 1
+            continue
+        if fc["sample_fill"] and time_limit > 0:
+            r = f.fill(time_limit, fc["branch"])
+            if r.status == IMPOSSIBLE:
+                impossible += 1
+                continue
+            if r.status != FILLED and not fc["keep_unproven"]:
+                continue
+        s.fillcheck = r
+        survivors.append(s)
+        if len(survivors) >= args.top:
+            break
+    filled = sum(1 for s in survivors if s.fillcheck.status == FILLED)
+    print(
+        f"fill check: {checked} best-scoring grids checked, {impossible} impossible with this word list, "
+        f"{len(survivors)} kept ({filled} with a sample fill) [{time.time() - t:.1f}s]"
+    )
+    return survivors
 
 
 def cmd_check(args) -> int:
@@ -138,6 +176,9 @@ def cmd_check(args) -> int:
     wl = _load_wordlist(args, cfg)
     cand = Candidate(grid, [], letters, seed_slots)
     sc = score_candidate(cand, cfg, wl)
+    if wl is not None and not args.no_fillcheck:
+        time_limit = args.fill_time if args.fill_time is not None else cfg["fillcheck"]["time_limit"]
+        sc.fillcheck = Filler(grid, letters, set(seed_slots.values()), wl).fill(time_limit, cfg["fillcheck"]["branch"])
     print(report(sc, 1))
     if args.export:
         files = export_all(sc, 1, Path(args.export))
@@ -155,6 +196,8 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--min-blocks", type=int)
         sp.add_argument("--max-blocks", type=int)
         sp.add_argument("--max-words", type=int)
+        sp.add_argument("--no-fillcheck", action="store_true", help="skip the word-list fill check")
+        sp.add_argument("--fill-time", type=float, help="seconds per full-fill attempt (0 = quick check only)")
 
     f = sub.add_parser("find", help="search for grids that hold your seeds")
     f.add_argument("seeds", help="seeds file, one entry per line")

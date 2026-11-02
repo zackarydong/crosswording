@@ -64,6 +64,7 @@ class Scored:
     stack_pairs: int
     score: float
     parts: dict[str, float] = field(default_factory=dict)
+    fillcheck: object = None  # FillResult when the fill check ran
 
 
 def score_candidate(cand: Candidate, cfg: dict, wordlist: WordList | None) -> Scored:

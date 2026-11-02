@@ -116,7 +116,7 @@ def test_cli_find_and_check(tmp_path, capsys):
     wl = tmp_path / "w.dict"
     wl.write_text("thesaharadesert;60\ngreenpaint;50\nabc;50\n")
     out = tmp_path / "out"
-    rc = main(["find", str(seeds), "--wordlist", str(wl), "--seed", "5", "--attempts", "200", "--top", "2", "--out", str(out), "--quiet"])
+    rc = main(["find", str(seeds), "--wordlist", str(wl), "--seed", "5", "--attempts", "200", "--top", "2", "--out", str(out), "--quiet", "--no-fillcheck"])
     assert rc == 0
     pngs = list((out / "run-5").glob("*.png"))
     assert len(pngs) == 2
@@ -124,7 +124,7 @@ def test_cli_find_and_check(tmp_path, capsys):
     plain = grid_txt.read_text().split("plain grid:\n")[1].split("\n\n")[0]
     gfile = tmp_path / "g.txt"
     gfile.write_text(plain)
-    rc = main(["check", str(gfile), "--seeds", str(seeds), "--wordlist", str(wl)])
+    rc = main(["check", str(gfile), "--seeds", str(seeds), "--wordlist", str(wl), "--no-fillcheck"])
     assert rc == 0
     assert "hard constraints: OK" in capsys.readouterr().out
 

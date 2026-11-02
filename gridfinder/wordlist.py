@@ -59,10 +59,12 @@ class WordList:
                 by_len.setdefault(len(w), []).append((w, s))
         self._mats: dict[int, np.ndarray] = {}
         self._good: dict[int, np.ndarray] = {}
+        self._scores: dict[int, np.ndarray] = {}
         for n, items in by_len.items():
             arr = np.frombuffer("".join(w for w, _ in items).encode("ascii"), dtype=np.uint8)
             self._mats[n] = arr.reshape(len(items), n)
             self._good[n] = np.array([s >= good_score for _, s in items], dtype=bool)
+            self._scores[n] = np.array([s for _, s in items], dtype=np.int16)
         self.count = lru_cache(maxsize=200_000)(self._count)
 
     @classmethod
@@ -90,6 +92,17 @@ class WordList:
             if len(w) >= 3:
                 words[w] = max(s, words.get(w, s))
         return cls(words, min_score, good_score)
+
+    def matrix(self, length: int) -> np.ndarray:
+        """(n_words, length) uint8 ASCII matrix of usable words of this length."""
+        m = self._mats.get(length)
+        return np.zeros((0, length), dtype=np.uint8) if m is None else m
+
+    def scores(self, length: int) -> np.ndarray:
+        return self._scores.get(length, np.zeros(0, dtype=np.int16))
+
+    def word(self, length: int, idx: int) -> str:
+        return self._mats[length][idx].tobytes().decode("ascii")
 
     def n_words(self, length: int) -> int:
         m = self._mats.get(length)

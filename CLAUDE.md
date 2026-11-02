@@ -36,9 +36,17 @@ stay easy to read (row/col numbers, "block columns by row" list).
 
 ## Code map
 gridfinder/: grid.py (model, slots, constraints), stats.py, flow.py,
-wordlist.py, fill.py, seeds.py, search.py (randomized symmetric search),
+wordlist.py, fill.py, fillcheck.py (pruning + backtracking fill check), seeds.py, search.py (randomized symmetric search),
 scoring.py, export.py (ascii/txt/ipuz/png), cli.py (`find`, `check`),
 default_config.toml (all weights/targets/biases).
+
+## Findings
+- Crosserville said the Set A Flow-132 grid was impossible; fillcheck agrees.
+  Before fillcheck, most top-ranked grids were unfillable. 4 crossing seeds is
+  usually impossible; 2-3 seeds works much better.
+- Full-pruning propagation in the filler beats forward checking (proves
+  impossibility fast). Filler speed (~50 nodes/s) is the bottleneck on
+  open grids. Next speedups: bitset domains, or a compiled filler.
 
 ## Open items / ideas
 - Calibrate Flow: run `gridfinder check` on a few published grids and compare

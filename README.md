@@ -123,6 +123,29 @@ cp gridfinder/default_config.toml config.toml
 gridfinder find seeds.txt --config config.toml
 ```
 
+### Fill check (does the grid actually fill?)
+
+The per-slot fillability count can't see conflicts between crossing slots,
+so after ranking, `find` checks grids against your word list in rank order:
+
+1. **Quick impossibility check** (~40 ms/grid): repeatedly remove words
+   that don't fit any word in a crossing slot. If a slot runs out of words,
+   the grid is **impossible** with this list and is skipped.
+2. **Full fill attempt** (`time_limit`, default 10 s): backtracking with
+   randomized restarts, most-constrained slot first, best-scored words first,
+   no repeated answers. Results are **FILLED** (with a machine-made sample
+   fill, printed and saved in the `.txt`), **IMPOSSIBLE** (search exhausted),
+   or **UNKNOWN** (time ran out; may still be fillable).
+
+It stops once `--top` grids survive. Flags: `--fill-time 0` (quick check
+only), `--no-fillcheck`. `gridfinder check` runs the same check on your own
+grid. Settings are in `[fillcheck]`.
+
+Rule of thumb from testing: 4 seeds with several crossings are usually
+impossible; 2-3 seeds leave most grids fillable. The filler is pure Python,
+so wide-open grids often come back UNKNOWN rather than FILLED. Crosserville's
+autofill is the final word.
+
 ### Grid Flow: implementation and assumptions
 
 Per the article: build a graph with one node per entry and an edge wherever
@@ -173,7 +196,8 @@ gridfinder/
   stats.py     blocks / words / avg length / 3-letter counts
   flow.py      Grid Flow
   wordlist.py  word list format detection, pattern counting
-  fill.py      fillability proxy
+  fill.py      fillability proxy (per-slot candidate counts)
+  fillcheck.py real fill check (impossibility proof + sample fill)
   seeds.py     seed parsing, placement on a grid, crossing reports
   search.py    randomized symmetric search
   scoring.py   soft scoring

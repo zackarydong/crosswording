@@ -79,7 +79,11 @@ def stats_lines(s: Scored) -> list[str]:
 def report(s: Scored, rank: int) -> str:
     g = s.cand.grid
     parts = [f"=== #{rank} ===", *stats_lines(s), "seeds:", *("  " + x for x in seed_lines(s))]
+    if s.fillcheck is not None:
+        parts.insert(2, "fill check: " + s.fillcheck.summary())
     parts += ["", ascii_grid(g), "", "with seeds:", ascii_grid(g, s.cand.letters)]
+    if s.fillcheck is not None and s.fillcheck.letters:
+        parts += ["", "sample fill (machine-made, only proves the grid can be filled):", ascii_grid(g, s.fillcheck.letters)]
     return "\n".join(parts)
 
 
