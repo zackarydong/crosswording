@@ -10,3 +10,4 @@ Saved gridfinder runs (rng seed 11). Each folder has the top 3 grids
 | `set-a/` | Set A with open-area penalty |
 | `set-b/` | Set B with open-area penalty (grid-01: 39 blocks) |
 | `set-b-34/` | Set B with penalty and `--max-blocks 34` |
+| `set-c/` | LETMEBECLEAR + VIBECHECK with fill check (grid-01, grid-02 have sample fills) |

@@ -1,0 +1,96 @@
+=== #1 ===
+score 88.0
+fill check: FILLED in 0.4s (sample fill below)
+blocks 39 | words 66 | avg word length 5.64 | 3-letter 6 | flow 39.1 | fillability 100
+lengths: 3:6, 4:18, 5:12, 6:10, 7:10, 8:4, 9:4, 12:2
+long non-seed entries (10+): 1 | long stacked pairs: 0
+seeds:
+  LETMEBECLEAR: 26-Across, row 7, col 1 (12)
+  VIBECHECK: 18-Across, row 4, col 7 (9)
+
+      1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
+  1   #  #  .  .  .  .  .  .  #  .  .  .  .  .  #
+  2   #  .  .  .  .  .  .  .  #  .  .  .  .  .  #
+  3   .  .  .  .  .  .  .  .  #  .  .  .  .  .  .
+  4   .  .  .  .  .  #  .  .  .  .  .  .  .  .  .
+  5   .  .  .  .  #  .  .  .  .  .  #  .  .  .  .
+  6   .  .  .  #  .  .  .  .  .  .  #  .  .  .  .
+  7   .  .  .  .  .  .  .  .  .  .  .  .  #  #  #
+  8   #  .  .  .  .  #  #  #  #  #  .  .  .  .  #
+  9   #  #  #  .  .  .  .  .  .  .  .  .  .  .  .
+ 10   .  .  .  .  #  .  .  .  .  .  .  #  .  .  .
+ 11   .  .  .  .  #  .  .  .  .  .  #  .  .  .  .
+ 12   .  .  .  .  .  .  .  .  .  #  .  .  .  .  .
+ 13   .  .  .  .  .  .  #  .  .  .  .  .  .  .  .
+ 14   #  .  .  .  .  .  #  .  .  .  .  .  .  .  #
+ 15   #  .  .  .  .  .  #  .  .  .  .  .  .  #  #
+
+with seeds:
+      1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
+  1   #  #  .  .  .  .  .  .  #  .  .  .  .  .  #
+  2   #  .  .  .  .  .  .  .  #  .  .  .  .  .  #
+  3   .  .  .  .  .  .  .  .  #  .  .  .  .  .  .
+  4   .  .  .  .  .  #  V  I  B  E  C  H  E  C  K
+  5   .  .  .  .  #  .  .  .  .  .  #  .  .  .  .
+  6   .  .  .  #  .  .  .  .  .  .  #  .  .  .  .
+  7   L  E  T  M  E  B  E  C  L  E  A  R  #  #  #
+  8   #  .  .  .  .  #  #  #  #  #  .  .  .  .  #
+  9   #  #  #  .  .  .  .  .  .  .  .  .  .  .  .
+ 10   .  .  .  .  #  .  .  .  .  .  .  #  .  .  .
+ 11   .  .  .  .  #  .  .  .  .  .  #  .  .  .  .
+ 12   .  .  .  .  .  .  .  .  .  #  .  .  .  .  .
+ 13   .  .  .  .  .  .  #  .  .  .  .  .  .  .  .
+ 14   #  .  .  .  .  .  #  .  .  .  .  .  .  .  #
+ 15   #  .  .  .  .  .  #  .  .  .  .  .  .  #  #
+
+sample fill (machine-made, only proves the grid can be filled):
+      1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
+  1   #  #  M  A  O  I  S  M  #  A  B  Y  S  S  #
+  2   #  C  A  D  U  C  E  I  #  D  R  O  O  P  #
+  3   N  O  R  E  T  U  R  N  #  S  I  G  M  A  S
+  4   E  V  I  L  S  #  V  I  B  E  C  H  E  C  K
+  5   V  E  N  A  #  D  I  V  A  N  #  O  R  E  O
+  6   I  R  A  #  C  A  L  A  I  S  #  U  S  S  R
+  7   L  E  T  M  E  B  E  C  L  E  A  R  #  #  #
+  8   #  D  E  A  D  #  #  #  #  #  A  T  A  D  #
+  9   #  #  #  C  E  M  E  N  T  M  A  S  O  N  S
+ 10   Z  O  M  G  #  I  D  A  H  O  S  #  L  I  E
+ 11   U  S  E  R  #  A  D  R  E  P  #  A  R  E  A
+ 12   M  I  T  E  R  S  A  W  S  #  A  D  A  P  T
+ 13   A  R  T  G  U  M  #  H  A  Y  R  I  D  E  S
+ 14   #  I  L  O  N  A  #  A  M  E  M  O  I  R  #
+ 15   #  S  E  R  T  S  #  L  E  S  S  S  O  #  #
+
+plain grid:
+##......#.....#
+#.......#.....#
+........#......
+.....#.........
+....#.....#....
+...#......#....
+............###
+#....#####....#
+###............
+....#......#...
+....#.....#....
+.........#.....
+......#........
+#.....#.......#
+#.....#......##
+
+block columns by row (for placing blocks by hand):
+row  1: 1, 2, 9, 15
+row  2: 1, 9, 15
+row  3: 9
+row  4: 6
+row  5: 5, 11
+row  6: 4, 11
+row  7: 13, 14, 15
+row  8: 1, 6, 7, 8, 9, 10, 15
+row  9: 1, 2, 3
+row 10: 5, 12
+row 11: 5, 11
+row 12: 10
+row 13: 7
+row 14: 1, 7, 15
+row 15: 1, 7, 14, 15
