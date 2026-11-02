@@ -82,6 +82,9 @@ def cmd_find(args) -> int:
         sc = score_candidate(cand, cfg, wl)
         if reject_dead and sc.fill.dead:
             continue
+        o = cfg["openness"]
+        if 0 <= o["max_long_nonseed"] < sc.long_nonseed or 0 <= o["max_stack_pairs"] < sc.stack_pairs:
+            continue
         best[key] = sc
         if not args.quiet and (k + 1) % 1000 == 0:
             print(f"  {k + 1} attempts, {len(best)} valid grids, {time.time() - t:.1f}s")

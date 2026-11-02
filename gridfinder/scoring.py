@@ -21,6 +21,33 @@ def band(x: float, lo: float, hi: float, ideal: float, falloff: float) -> float:
     return max(0.0, 0.8 * (1 - d / falloff))
 
 
+def openness(slot_list, seed_slots, long_len: int, stack_len: int) -> tuple[int, int]:
+    """(long non-seed entries, long parallel stack pairs).
+
+    A stack pair = two parallel entries in adjacent rows (or columns), both at
+    least stack_len long, overlapping by at least stack_len squares, not both
+    seeds. Wide blocks of long parallel entries are the hardest areas to fill,
+    and the per-slot candidate count can't see them."""
+    long_nonseed = sum(1 for s in slot_list if s.length >= long_len and s not in seed_slots)
+    by_line: dict[tuple[str, int], list] = {}
+    for s in slot_list:
+        if s.length >= stack_len:
+            line = s.row if s.direction == "A" else s.col
+            by_line.setdefault((s.direction, line), []).append(s)
+    pairs = 0
+    for (d, line), group in by_line.items():
+        for a in group:
+            for b in by_line.get((d, line + 1), []):
+                if a in seed_slots and b in seed_slots:
+                    continue
+                a0 = a.col if d == "A" else a.row
+                b0 = b.col if d == "A" else b.row
+                overlap = min(a0 + a.length, b0 + b.length) - max(a0, b0)
+                if overlap >= stack_len:
+                    pairs += 1
+    return long_nonseed, pairs
+
+
 def rising(x: float, zero_at: float, full_at: float) -> float:
     if full_at <= zero_at:
         return 1.0 if x >= full_at else 0.0
@@ -33,6 +60,8 @@ class Scored:
     stats: GridStats
     flow: float
     fill: FillReport
+    long_nonseed: int
+    stack_pairs: int
     score: float
     parts: dict[str, float] = field(default_factory=dict)
 
@@ -49,6 +78,9 @@ def score_candidate(cand: Candidate, cfg: dict, wordlist: WordList | None) -> Sc
         )
     else:
         fr = FillReport(100.0)
+    o = cfg["openness"]
+    seed_set = set(cand.seed_slots.values())
+    long_n, stacks = openness(sl, seed_set, o["long_len"], o["stack_len"])
     mt = t["max_threes"]
     parts = {
         "words": band(st.words, *t["words"], t["words_ideal"], 8),
@@ -59,7 +91,9 @@ def score_candidate(cand: Candidate, cfg: dict, wordlist: WordList | None) -> Sc
         "fill": fr.score / 100,
         # secondary: zero below half of flow_min, full at flow_ideal
         "flow": rising(flow, t["flow_min"] / 2, t["flow_ideal"]),
+        # long non-seed entries and long parallel stacks are hard to fill
+        "open": max(0.0, 1 - o["long_cost"] * max(0, long_n - o["long_free"]) - o["stack_cost"] * stacks),
     }
     total_w = sum(w[k] for k in parts)
     score = 100 * sum(w[k] * v for k, v in parts.items()) / total_w
-    return Scored(cand, st, flow, fr, score, parts)
+    return Scored(cand, st, flow, fr, long_n, stacks, score, parts)

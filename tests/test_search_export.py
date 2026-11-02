@@ -127,3 +127,22 @@ def test_cli_find_and_check(tmp_path, capsys):
     rc = main(["check", str(gfile), "--seeds", str(seeds), "--wordlist", str(wl)])
     assert rc == 0
     assert "hard constraints: OK" in capsys.readouterr().out
+
+
+def test_openness_counts_long_entries_and_stacks():
+    from gridfinder.scoring import openness
+
+    g = Grid(15)  # fully open: 30 fifteen-letter entries
+    sl = slots(g, 3)
+    long_n, stacks = openness(sl, set(), 10, 8)
+    assert long_n == 30
+    assert stacks == 28  # 14 adjacent row pairs + 14 adjacent column pairs
+    # seeds are not counted as long non-seed entries
+    long_n2, _ = openness(sl, set(sl[:2]), 10, 8)
+    assert long_n2 == 28
+
+
+def test_openness_lowers_score_for_open_center(candidates):
+    cfg, cands = candidates
+    sc = score_candidate(cands[0], cfg, None)
+    assert "open" in sc.parts and 0 <= sc.parts["open"] <= 1

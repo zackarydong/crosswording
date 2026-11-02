@@ -28,6 +28,7 @@ avg_len = 1.5
 threes = 1.5
 fill = 2.0
 flow = 0.5              # secondary
+open = 2.0              # penalty for long non-seed entries / long stacks
 
 [fill]
 min_score = 50          # words scoring >= this count as candidates
@@ -36,6 +37,16 @@ few = 5                 # fewer candidates than this = "tight" slot
 dead_penalty = 25.0     # per slot with zero candidates
 tight_penalty = 8.0     # max per tight slot (scaled by how tight)
 reject_dead = false     # true = discard grids with any zero-candidate slot
+
+# Hard-to-fill open areas (the per-slot fill count can't see these).
+[openness]
+long_len = 10           # non-seed entries this long or longer count as "long"
+long_free = 2           # this many long non-seed entries are free
+long_cost = 0.15        # score loss per extra long non-seed entry
+stack_len = 8           # parallel adjacent entries >= this, overlapping >= this, form a stack
+stack_cost = 0.12       # score loss per stacked pair
+max_long_nonseed = -1   # hard limit (reject grid if exceeded); -1 = off
+max_stack_pairs = -1    # hard limit; -1 = off
 
 [flow]
 weighting = "none"      # "none" (default, per article) or "length"

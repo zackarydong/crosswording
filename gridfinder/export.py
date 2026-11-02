@@ -63,6 +63,7 @@ def stats_lines(s: Scored) -> list[str]:
         f"blocks {st.blocks} | words {st.words} | avg word length {st.avg_len:.2f} | "
         f"3-letter {st.threes} | flow {s.flow:.1f} | fillability {fr.score:.0f}",
         "lengths: " + ", ".join(f"{k}:{v}" for k, v in st.length_hist.items()),
+        f"long non-seed entries (10+): {s.long_nonseed} | long stacked pairs: {s.stack_pairs}",
     ]
     if fr.dead:
         lines.append(
