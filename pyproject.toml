@@ -18,5 +18,8 @@ gridfinder = "gridfinder.cli:main"
 [tool.setuptools]
 packages = ["gridfinder"]
 
+[tool.setuptools.package-data]
+gridfinder = ["default_config.toml"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
