@@ -148,23 +148,37 @@ def is_symmetric(grid: Grid) -> bool:
     return all(b[i] == b[last - i] for i in range(len(b) // 2 + 1))
 
 
+_NEIGHBORS: dict[int, list[tuple[int, ...]]] = {}
+
+
+def neighbors(n: int) -> list[tuple[int, ...]]:
+    """Orthogonal neighbor indices of every cell (cached per grid size)."""
+    if n not in _NEIGHBORS:
+        out = []
+        for i in range(n * n):
+            r, c = divmod(i, n)
+            out.append(tuple(j for j, ok in ((i - n, r > 0), (i + n, r < n - 1), (i - 1, c > 0), (i + 1, c < n - 1)) if ok))
+        _NEIGHBORS[n] = out
+    return _NEIGHBORS[n]
+
+
 def is_connected(blocks: bytes | bytearray, n: int) -> bool:
-    whites = [i for i in range(n * n) if not blocks[i]]
-    if not whites:
+    nb = neighbors(n)
+    total = len(blocks) - sum(blocks)
+    if total == 0:
         return False
-    seen = bytearray(n * n)
-    stack = [whites[0]]
-    seen[whites[0]] = 1
+    start = blocks.index(0)
+    seen = bytearray(blocks)  # blacks count as seen
+    seen[start] = 1
+    stack = [start]
     count = 1
     while stack:
-        i = stack.pop()
-        r, c = divmod(i, n)
-        for j, ok in ((i - n, r > 0), (i + n, r < n - 1), (i - 1, c > 0), (i + 1, c < n - 1)):
-            if ok and not blocks[j] and not seen[j]:
+        for j in nb[stack.pop()]:
+            if not seen[j]:
                 seen[j] = 1
                 count += 1
                 stack.append(j)
-    return count == len(whites)
+    return count == total
 
 
 def has_solid_block(blocks: bytes | bytearray, n: int, k: int = 3) -> bool:

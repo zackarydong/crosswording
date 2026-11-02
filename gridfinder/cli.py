@@ -1,9 +1,181 @@
-"""Command-line entry point (placeholder until the search is built)."""
+"""gridfinder command line.
+
+  gridfinder find seeds.txt [--wordlist data/XwiWordList.dict] [--top 5] [--seed 1] ...
+  gridfinder check grid.txt --seeds seeds.txt   (score a grid you drew yourself)
+"""
+
+from __future__ import annotations
+
+import argparse
+import random
+import sys
+import time
+from pathlib import Path
+
+from .config import load_config
+from .export import export_all, report
+from .grid import Grid, violations
+from .scoring import score_candidate
+from .search import Candidate, Searcher
+from .seeds import crossing_report, letters_for, load_seeds, place_seeds
+from .wordlist import AmbiguousFormat, WordList
 
 
-def main() -> None:
-    print("gridfinder: not implemented yet")
+def _default_wordlist() -> Path | None:
+    data = Path("data")
+    found = sorted(data.glob("*.dict")) + sorted(data.glob("*.txt")) if data.is_dir() else []
+    return found[0] if found else None
+
+
+def _load_wordlist(args, cfg) -> WordList | None:
+    path = Path(args.wordlist) if args.wordlist else _default_wordlist()
+    if path is None:
+        print("note: no word list given (--wordlist) and none in data/; skipping fillability", file=sys.stderr)
+        return None
+    try:
+        t = time.time()
+        wl = WordList.load(path, cfg["fill"]["min_score"], cfg["fill"]["good_score"])
+        print(f"word list: {path} ({wl.total:,} entries, score >= {wl.min_score} used) [{time.time() - t:.1f}s]")
+        return wl
+    except AmbiguousFormat as e:
+        sys.exit(f"word list format unclear: {e}\nPlease tell me the format (e.g. WORD;SCORE).")
+
+
+def _apply_overrides(cfg, args) -> None:
+    h = cfg["hard"]
+    if args.min_blocks is not None:
+        h["min_blocks"] = args.min_blocks
+    if args.max_blocks is not None:
+        h["max_blocks"] = args.max_blocks
+    if args.max_words is not None:
+        h["max_words"] = args.max_words
+    if getattr(args, "attempts", None) is not None:
+        cfg["search"]["attempts"] = args.attempts
+
+
+def cmd_find(args) -> int:
+    cfg = load_config(args.config)
+    _apply_overrides(cfg, args)
+    seeds = load_seeds(args.seeds, cfg["hard"]["size"])
+    if not 3 <= len(seeds) <= 6:
+        print(f"note: {len(seeds)} seeds given (3-6 expected); continuing")
+    wl = _load_wordlist(args, cfg)
+    seed = args.seed if args.seed is not None else random.randrange(1_000_000)
+    rng = random.Random(seed)
+    searcher = Searcher(seeds, cfg, rng)
+    attempts = cfg["search"]["attempts"]
+    print(f"seeds: {', '.join(seeds)} | rng seed {seed} | {attempts} attempts")
+    print("seed crossings (placements where two seeds would cross at different letters are rejected):")
+    for line in crossing_report(seeds):
+        print("  " + line)
+    best: dict[bytes, object] = {}
+    t = time.time()
+    reject_dead = cfg["fill"]["reject_dead"]
+    for k in range(attempts):
+        cand = searcher.attempt()
+        if cand is None:
+            continue
+        key = cand.grid.key()
+        if key in best:
+            searcher.log.duplicates += 1
+            continue
+        sc = score_candidate(cand, cfg, wl)
+        if reject_dead and sc.fill.dead:
+            continue
+        best[key] = sc
+        if not args.quiet and (k + 1) % 1000 == 0:
+            print(f"  {k + 1} attempts, {len(best)} valid grids, {time.time() - t:.1f}s")
+    dt = time.time() - t
+    log = searcher.log
+    print(
+        f"done in {dt:.1f}s: {log.attempts} attempts, {log.produced} valid grids "
+        f"({len(best)} unique), {log.attempts / max(dt, 1e-9):.0f} attempts/s"
+    )
+    if log.fill_reasons:
+        print("  rejected attempts: " + ", ".join(f"{k} {v}" for k, v in log.fill_reasons.most_common()))
+    if not best:
+        print("no valid grids found; try more --attempts, other seeds, or a wider --max-blocks")
+        return 1
+    ranked = sorted(best.values(), key=lambda s: -s.score)[: args.top]
+    outdir = Path(args.out) / f"run-{seed}"
+    for rank, s in enumerate(ranked, 1):
+        print()
+        print(report(s, rank))
+        files = export_all(s, rank, outdir)
+        print("files: " + ", ".join(str(f) for f in files))
+    return 0
+
+
+def cmd_check(args) -> int:
+    cfg = load_config(args.config)
+    _apply_overrides(cfg, args)
+    grid = Grid.from_text(Path(args.grid).read_text())
+    v = violations(grid, cfg["hard"]["max_words"], cfg["hard"]["min_entry"])
+    print("hard constraints: " + ("OK" if not v else "VIOLATED"))
+    for x in v:
+        print("  - " + x)
+    seeds = load_seeds(args.seeds, grid.n) if args.seeds else []
+    letters: list = [None] * (grid.n * grid.n)
+    seed_slots = {}
+    if seeds:
+        pl = place_seeds(grid, seeds)
+        if not pl.ok:
+            print("seeds do NOT fit this grid")
+            for u in pl.unplaceable:
+                print(f"  - no slot for {u}")
+            for c in pl.conflicts:
+                print("  - conflict: " + c.describe())
+            return 1
+        seed_slots = pl.assignment
+        letters = letters_for(pl.assignment, grid.n * grid.n)
+        if pl.conflicts:
+            print("note: some seed positions were rejected because they cross at different letters:")
+            for c in pl.conflicts[:10]:
+                print("  - " + c.describe())
+    wl = _load_wordlist(args, cfg)
+    cand = Candidate(grid, [], letters, seed_slots)
+    sc = score_candidate(cand, cfg, wl)
+    print(report(sc, 1))
+    if args.export:
+        files = export_all(sc, 1, Path(args.export))
+        print("files: " + ", ".join(str(f) for f in files))
+    return 0 if not v else 2
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="gridfinder", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    def common(sp):
+        sp.add_argument("--wordlist", help="scored word list (default: first *.dict in data/)")
+        sp.add_argument("--config", help="TOML file overriding gridfinder/default_config.toml")
+        sp.add_argument("--min-blocks", type=int)
+        sp.add_argument("--max-blocks", type=int)
+        sp.add_argument("--max-words", type=int)
+
+    f = sub.add_parser("find", help="search for grids that hold your seeds")
+    f.add_argument("seeds", help="seeds file, one entry per line")
+    common(f)
+    f.add_argument("--top", type=int, default=5, help="number of grids to show/export (default 5)")
+    f.add_argument("--seed", type=int, help="RNG seed for reproducible runs")
+    f.add_argument("--attempts", type=int, help="candidate grids to try (default from config)")
+    f.add_argument("--out", default="out", help="output folder (default out/)")
+    f.add_argument("--quiet", action="store_true")
+    f.set_defaults(func=cmd_find)
+
+    c = sub.add_parser("check", help="validate and score a grid you drew (# = block, . = white)")
+    c.add_argument("grid")
+    c.add_argument("--seeds")
+    c.add_argument("--export", help="folder to write txt/ipuz/png into")
+    common(c)
+    c.set_defaults(func=cmd_check)
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    return args.func(args)
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

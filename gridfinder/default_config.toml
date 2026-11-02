@@ -1,0 +1,56 @@
+# gridfinder default configuration (NYT-style Friday themeless).
+# Copy to config.toml and pass --config config.toml to override any value.
+
+[hard]
+size = 15
+max_words = 72          # themeless limit (--max-words)
+min_blocks = 20         # --min-blocks
+max_blocks = 40         # --max-blocks
+min_entry = 3
+
+# Approved Friday targets (Step 0). Soft: used for scoring, not rejection.
+[targets]
+words = [64, 72]
+words_ideal = 69
+blocks = [26, 34]
+blocks_ideal = 30
+avg_len_min = 5.4
+avg_len_ideal = 5.6
+max_threes = 12
+flow_min = 25           # secondary qualification
+flow_ideal = 40
+
+# Relative weights of each component (score = weighted average, 0-100).
+[weights]
+words = 1.0
+blocks = 1.0
+avg_len = 1.5
+threes = 1.5
+fill = 2.0
+flow = 0.5              # secondary
+
+[fill]
+min_score = 50          # words scoring >= this count as candidates
+good_score = 60
+few = 5                 # fewer candidates than this = "tight" slot
+dead_penalty = 25.0     # per slot with zero candidates
+tight_penalty = 8.0     # max per tight slot (scaled by how tight)
+reject_dead = false     # true = discard grids with any zero-candidate slot
+
+[flow]
+weighting = "none"      # "none" (default, per article) or "length"
+
+[search]
+attempts = 5000         # candidate grids to try per run
+# Seed layout biases
+pair_bias = 3.0         # prefer putting a seed in the mirror slot of another seed
+cross_bias = 2.0        # prefer seeds that cross each other at matching letters
+# Block placement biases (Friday-style patterns: staircases / X shapes / bars)
+base = 1.0
+diag = 2.0              # diagonal to an existing block (staircase)
+extend = 1.0            # extends an existing block into a short bar
+x_pattern = 0.75        # near the main diagonals (X layouts)
+edge = 0.5              # notch on the outer edge
+clump = 0.3             # multiplier when the cell touches 2+ blocks orthogonally
+three_reject = 0.7      # chance to refuse a block that creates a new 3-letter entry
+stuck_slack = 4         # if no legal block remains, keep grids with >= (words min - slack) words

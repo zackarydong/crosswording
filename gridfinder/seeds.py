@@ -132,3 +132,35 @@ def place_seeds(grid: Grid, seeds: list[str], max_conflicts: int = 50) -> Placem
         if short:
             unplaceable = short
     return Placement(ok, dict(assignment) if ok else {}, list(conflicts.values()), unplaceable)
+
+
+def crossing_options(a: str, b: str) -> int:
+    """Number of (i, j) positions where a[i] == b[j], i.e. ways the two seeds could cross."""
+    return sum(1 for x in a for y in b if x == y)
+
+
+def crossing_report(seeds: list[str]) -> list[str]:
+    """One line per seed pair: how many crossing points are letter-compatible."""
+    out = []
+    for k, a in enumerate(seeds):
+        for b in seeds[k + 1 :]:
+            ok = crossing_options(a, b)
+            total = len(a) * len(b)
+            if ok == 0:
+                out.append(f"{a} x {b}: no shared letters, they can never cross (will be kept apart)")
+            else:
+                out.append(f"{a} x {b}: {ok} of {total} crossing points are compatible; the rest are rejected")
+    return out
+
+
+def seed_crossings(assignment: dict[str, Slot], n: int) -> list[str]:
+    """Describe seeds that actually cross each other in a placement."""
+    out = []
+    items = list(assignment.items())
+    for k, (a, sa) in enumerate(items):
+        for b, sb in items[k + 1 :]:
+            common = set(sa.cells) & set(sb.cells)
+            for i in common:
+                r, c = divmod(i, n)
+                out.append(f"{a} crosses {b} at row {r + 1}, col {c + 1} ({a[sa.cells.index(i)]})")
+    return out
