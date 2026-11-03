@@ -56,6 +56,19 @@ def is_phrase(w: str, keys: set[str]) -> bool:
     return 2 <= best[n] < 10**9
 
 
+def _other_split(w: str, prefix_len: int, keys: set[str]) -> bool:
+    """True if w reads as a phrase split somewhere other than after the prefix
+    (UNCUT+GEMS, RED+ALES, INTER+MILAN with INTER a word): then the prefix
+    match is a coincidence."""
+    for i in range(3, len(w) - 2):
+        if i == prefix_len and w[:i] not in keys:
+            continue
+        head, tail = w[:i], w[i:]
+        if head in keys and (tail in keys or is_phrase(tail, keys)):
+            return True
+    return False
+
+
 def flag(words: dict[str, int], unreviewed: int = 50, min_len: int = 7) -> dict[str, str]:
     """Return {WORD: reason} for unreviewed words that match a rule."""
     keys = set(words)
@@ -66,7 +79,7 @@ def flag(words: dict[str, int], unreviewed: int = 50, min_len: int = 7) -> dict[
         reason = None
         for p in PREFIXES:
             rest = w[len(p):]
-            if w.startswith(p) and len(rest) >= 4 and rest in keys:
+            if w.startswith(p) and len(rest) >= 4 and rest in keys and not _other_split(w, len(p), keys):
                 reason = f"{p}- + {rest}"
                 break
         if reason is None and not is_phrase(w, keys):

@@ -145,3 +145,13 @@ def test_flagwords_rules_and_phrase_exemption():
     assert "PLOTTWISTS" not in f and "COVEROFDARKNESS" not in f  # phrases exempt from suffix rules
     assert "REPAIRMEN" not in f and "MAPLESYRUP" not in f
     assert is_phrase("COVEROFDARKNESS", set(words)) and not is_phrase("COMPOSES", set(words))
+
+
+def test_flagwords_prefix_rule_skips_phrases():
+    from gridfinder.flagwords import flag
+
+    words = {w: 50 for w in ["UNCUT", "GEMS", "CUTGEMS", "UNCUTGEMS", "RED", "ALES", "DALES", "REDALES",
+                             "COMPOSES", "RECOMPOSES"]}
+    f = flag(words)
+    assert "UNCUTGEMS" not in f and "REDALES" not in f
+    assert "RECOMPOSES" in f
