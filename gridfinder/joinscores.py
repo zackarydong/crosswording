@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import re
 from collections import Counter
 from pathlib import Path
@@ -76,6 +77,30 @@ def join(main, old, unreviewed: int = 50, mapping=DEFAULT_MAP, up=DEFAULT_UP, no
     return rows, unmatched, stats
 
 
+def apply_grades(rows: list[tuple[str, int]], grades: dict[str, int]):
+    """Apply hand grades on top of everything: -1 removes, new words are appended
+    (lowercase if the list is lowercase)."""
+    g = {k.upper(): int(v) for k, v in grades.items()}
+    out, seen, stats = [], set(), Counter()
+    for w, s in rows:
+        k = w.upper()
+        seen.add(k)
+        if k in g:
+            if g[k] == -1:
+                stats["your grades: removed"] += 1
+                continue
+            stats["your grades: applied"] += 1
+            s = g[k]
+        out.append((w, s))
+    head = rows[:1000]
+    lower = bool(head) and sum(w.islower() for w, _ in head) * 2 > len(head)
+    for k, v in sorted(g.items()):
+        if k not in seen and v != -1:
+            out.append((k.lower() if lower else k, v))
+            stats["your grades: new words added"] += 1
+    return out, stats
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("main")
@@ -84,6 +109,7 @@ def main(argv=None) -> int:
     p.add_argument("--unmatched", help="also write unmatched words here (word;score)")
     p.add_argument("--unreviewed", type=int, default=50)
     p.add_argument("--no-raise", action="store_true", help="only lower scores, never raise them")
+    p.add_argument("--grades", help="your own grades as JSON {WORD: score}; -1 removes the word. Applied last, so they always win")
     a = p.parse_args(argv)
     main_rows = read_list(a.main)
     no_raise: set[str] = set()
@@ -93,6 +119,9 @@ def main(argv=None) -> int:
         no_raise = set(flag({k: s for _, k, s in main_rows if k}, a.unreviewed))
     rows, unmatched, stats = join(main_rows, read_list(a.old), a.unreviewed,
                                   up=[] if a.no_raise else DEFAULT_UP, no_raise=no_raise)
+    if a.grades:
+        rows, gstats = apply_grades(rows, json.loads(Path(a.grades).read_text()))
+        stats.update(gstats)
     Path(a.out).write_text("".join(f"{w};{s}\n" for w, s in rows))
     if a.unmatched:
         Path(a.unmatched).write_text("".join(f"{w};{a.unreviewed}\n" for w in unmatched))

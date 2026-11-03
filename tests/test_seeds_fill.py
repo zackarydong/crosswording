@@ -159,3 +159,11 @@ def test_flagwords_prefix_rule_skips_phrases():
     f = flag(words)
     assert "UNCUTGEMS" not in f  # UNCUT + GEMS: real phrase split
     assert "RECOMPOSES" in f
+
+
+def test_apply_grades_override_remove_add():
+    from gridfinder.joinscores import apply_grades
+
+    rows, stats = apply_grades([("apple", 50), ("esne", 25), ("respawn", 50)], {"ESNE": -1, "RESPAWN": 60, "GEOCACHE": 60})
+    assert rows == [("apple", 50), ("respawn", 60), ("geocache", 60)]
+    assert stats["your grades: removed"] == 1 and stats["your grades: new words added"] == 1
