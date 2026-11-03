@@ -130,3 +130,18 @@ def test_joinscores_downgrades_only_unreviewed(tmp_path):
     rows, unmatched, stats = join(read_list(m), read_list(o))
     assert dict(rows) == {"junk": 25, "meh": 40, "fine": 50, "rated": 60, "new": 50}
     assert unmatched == ["new"]
+
+
+def test_flagwords_rules_and_phrase_exemption():
+    from gridfinder.flagwords import flag, is_phrase
+
+    words = {w: 50 for w in ["COMPOSES", "RECOMPOSES", "UNRULINESS", "PLOT", "TWISTS", "PLOTTWISTS",
+                             "COVER", "DARKNESS", "COVEROFDARKNESS", "ENERGIZED", "MAPLESYRUP"]}
+    words["REPAIRMEN"] = 60  # already rated: never flagged
+    f = flag(words)
+    assert f["RECOMPOSES"] == "RE- + COMPOSES"
+    assert f["UNRULINESS"] == "-NESS noun"
+    assert f["ENERGIZED"] == "-IZE verb"
+    assert "PLOTTWISTS" not in f and "COVEROFDARKNESS" not in f  # phrases exempt from suffix rules
+    assert "REPAIRMEN" not in f and "MAPLESYRUP" not in f
+    assert is_phrase("COVEROFDARKNESS", set(words)) and not is_phrase("COMPOSES", set(words))
