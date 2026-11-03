@@ -127,9 +127,13 @@ def test_joinscores_downgrades_only_unreviewed(tmp_path):
     o = tmp_path / "o.dict"
     m.write_text("junk;50\nmeh;50\nfine;50\nrated;60\nnew;50\n")
     o.write_text("junk;20\nmeh;40\nfine;90\nrated;5\n")
-    rows, unmatched, stats = join(read_list(m), read_list(o))
+    rows, unmatched, stats = join(read_list(m), read_list(o), up=[])
     assert dict(rows) == {"junk": 25, "meh": 40, "fine": 50, "rated": 60, "new": 50}
     assert unmatched == ["new"]
+    rows, _, _ = join(read_list(m), read_list(o))  # default raises: old 80-90 -> 55
+    assert dict(rows)["fine"] == 55 and dict(rows)["rated"] == 60
+    rows, _, _ = join(read_list(m), read_list(o), no_raise={"FINE"})
+    assert dict(rows)["fine"] == 50
 
 
 def test_flagwords_rules_and_phrase_exemption():

@@ -19,6 +19,10 @@ from pathlib import Path
 # (old score upper bound inclusive, new score); first match wins. Old scores
 # above the last bound leave the word unchanged.
 DEFAULT_MAP = [(30, 25), (44, 40)]
+# Raises: (old score lower bound inclusive, new score); first match wins.
+# Old 100 = fresh, lively entries; old 80-90 = solid real words, so they go
+# to 55 (above unreviewed 50, below the main list's curated 60s).
+DEFAULT_UP = [(100, 60), (80, 55)]
 
 
 def read_list(path: str | Path) -> list[tuple[str, str, int]]:
@@ -37,8 +41,10 @@ def read_list(path: str | Path) -> list[tuple[str, str, int]]:
     return out
 
 
-def join(main, old, unreviewed: int = 50, mapping=DEFAULT_MAP):
-    """Returns (new rows [(word, score)], unmatched [word], stats Counter)."""
+def join(main, old, unreviewed: int = 50, mapping=DEFAULT_MAP, up=DEFAULT_UP, no_raise: set[str] | None = None):
+    """Returns (new rows [(word, score)], unmatched [word], stats Counter).
+    Words in `no_raise` (e.g. flagged as constructed) are never raised."""
+    no_raise = no_raise or set()
     old_scores: dict[str, int] = {}
     for _, key, s in old:
         if key:
@@ -60,6 +66,11 @@ def join(main, old, unreviewed: int = 50, mapping=DEFAULT_MAP):
             if o <= bound:
                 new = target
                 break
+        if new == s and key not in no_raise:
+            for bound, target in up:
+                if o >= bound:
+                    new = target
+                    break
         stats[f"changed {s} -> {new}" if new != s else "kept: old list agrees"] += 1
         rows.append((word, new))
     return rows, unmatched, stats
@@ -72,8 +83,16 @@ def main(argv=None) -> int:
     p.add_argument("--out", required=True, help="joined list to write (word;score)")
     p.add_argument("--unmatched", help="also write unmatched words here (word;score)")
     p.add_argument("--unreviewed", type=int, default=50)
+    p.add_argument("--no-raise", action="store_true", help="only lower scores, never raise them")
     a = p.parse_args(argv)
-    rows, unmatched, stats = join(read_list(a.main), read_list(a.old), a.unreviewed)
+    main_rows = read_list(a.main)
+    no_raise: set[str] = set()
+    if not a.no_raise:
+        from .flagwords import flag  # constructed words wait for review instead of being raised
+
+        no_raise = set(flag({k: s for _, k, s in main_rows if k}, a.unreviewed))
+    rows, unmatched, stats = join(main_rows, read_list(a.old), a.unreviewed,
+                                  up=[] if a.no_raise else DEFAULT_UP, no_raise=no_raise)
     Path(a.out).write_text("".join(f"{w};{s}\n" for w, s in rows))
     if a.unmatched:
         Path(a.unmatched).write_text("".join(f"{w};{a.unreviewed}\n" for w in unmatched))
