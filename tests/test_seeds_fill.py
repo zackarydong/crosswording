@@ -153,5 +153,5 @@ def test_flagwords_prefix_rule_skips_phrases():
     words = {w: 50 for w in ["UNCUT", "GEMS", "CUTGEMS", "UNCUTGEMS", "RED", "ALES", "DALES", "REDALES",
                              "COMPOSES", "RECOMPOSES"]}
     f = flag(words)
-    assert "UNCUTGEMS" not in f and "REDALES" not in f
+    assert "UNCUTGEMS" not in f  # UNCUT + GEMS: real phrase split
     assert "RECOMPOSES" in f

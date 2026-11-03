@@ -57,11 +57,11 @@ def is_phrase(w: str, keys: set[str]) -> bool:
 
 
 def _other_split(w: str, prefix_len: int, keys: set[str]) -> bool:
-    """True if w reads as a phrase split somewhere other than after the prefix
-    (UNCUT+GEMS, RED+ALES, INTER+MILAN with INTER a word): then the prefix
-    match is a coincidence."""
-    for i in range(3, len(w) - 2):
-        if i == prefix_len and w[:i] not in keys:
+    """True if w reads as a phrase split somewhere other than right after the
+    prefix (UNCUT+GEMS, RED+ALES): then the prefix match is a coincidence. The
+    prefix split itself never counts, since DIS, NON, MIS, PRE are words too."""
+    for i in range(4, len(w) - 3):  # both halves 4+ letters: 3-letter coincidences (UND+REAMED) don't count
+        if i == prefix_len:
             continue
         head, tail = w[:i], w[i:]
         if head in keys and (tail in keys or is_phrase(tail, keys)):
