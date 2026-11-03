@@ -118,3 +118,15 @@ def test_fillability_dead_slot(tmp_path):
     letters = letters_for({"AQA": seed_slot}, 9)
     rep2 = fillability(sl, letters, {seed_slot}, wl, few=1)
     assert len(rep2.dead) == 1  # the Q column
+
+
+def test_joinscores_downgrades_only_unreviewed(tmp_path):
+    from gridfinder.joinscores import join, read_list
+
+    m = tmp_path / "m.dict"
+    o = tmp_path / "o.dict"
+    m.write_text("junk;50\nmeh;50\nfine;50\nrated;60\nnew;50\n")
+    o.write_text("junk;20\nmeh;40\nfine;90\nrated;5\n")
+    rows, unmatched, stats = join(read_list(m), read_list(o))
+    assert dict(rows) == {"junk": 25, "meh": 40, "fine": 50, "rated": 60, "new": 50}
+    assert unmatched == ["new"]
