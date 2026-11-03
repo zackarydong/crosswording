@@ -13,3 +13,4 @@ Saved gridfinder runs (rng seed 11). Each folder has the top 3 grids
 | `set-c/` | LETMEBECLEAR + VIBECHECK with fill check (grid-01, grid-02 have sample fills) |
 | `verified-c/` | **VERIFIED FILLABLE**, fill hidden: LETMEBECLEAR + VIBECHECK, 33 blocks, rng seed 21 |
 | `verified-e/` | **VERIFIED FILLABLE**, fill hidden: LETMEBECLEAR + GEOCACHE, 33 blocks, rng seed 21 |
+| `verified-f/` | **VERIFIED FILLABLE**, fill hidden: BOURGEOISIE + GEOCACHE + VIBECHECK, 33 blocks, rng seed 1 |
