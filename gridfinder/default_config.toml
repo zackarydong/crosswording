@@ -28,7 +28,7 @@ avg_len = 1.5
 threes = 1.5
 fill = 2.0
 flow = 0.5              # secondary
-open = 2.0              # penalty for long non-seed entries / long stacks
+open = 1.0              # penalty for long non-seed entries / long stacks
 
 [fill]
 min_score = 50          # words scoring >= this count as candidates
@@ -55,7 +55,9 @@ max_checked = 3000      # ranked grids to run the quick impossibility check on
 sample_fill = true      # also try a full fill on each shown grid
 time_limit = 10.0       # seconds per full-fill attempt
 branch = 40             # candidate words tried per slot in the full fill
-keep_unproven = true    # show grids the quick check couldn't rule out, even if the full fill timed out
+keep_unproven = false   # false = only show grids verified fillable; true = also show unproven ones
+show_sample_fill = false  # print/save the machine fill (off: you fill it yourself)
+max_fill_attempts = 40  # full-fill attempts per run before giving up
 
 [flow]
 weighting = "none"      # "none" (default, per article) or "length"

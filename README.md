@@ -137,9 +137,14 @@ so after ranking, `find` checks grids against your word list in rank order:
    fill, printed and saved in the `.txt`), **IMPOSSIBLE** (search exhausted),
    or **UNKNOWN** (time ran out; may still be fillable).
 
-It stops once `--top` grids survive. Flags: `--fill-time 0` (quick check
-only), `--no-fillcheck`. `gridfinder check` runs the same check on your own
-grid. Settings are in `[fillcheck]`.
+By default `find` shows **only grids verified fillable** (the filler found a
+complete fill with your word list) and **hides the fill**, so you fill the
+grid yourself. It stops after `--top` verified grids or `max_fill_attempts`
+fill attempts. Flags: `--show-fill` (reveal the machine fill),
+`--allow-unproven` (also show grids that timed out), `--fill-time N`
+(seconds per attempt; 0 = quick check only), `--no-fillcheck`.
+`gridfinder check` runs the same check on your own grid. Settings are in
+`[fillcheck]`.
 
 Rule of thumb from testing: 4 seeds with several crossings are usually
 impossible; 2-3 seeds leave most grids fillable. The filler is pure Python,

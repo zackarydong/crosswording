@@ -41,7 +41,8 @@ class FillResult:
 
     def summary(self) -> str:
         if self.status == FILLED:
-            return f"FILLED in {self.seconds:.1f}s (sample fill below)"
+            shown = " (sample fill below)" if self.letters else " (fill hidden; --show-fill to see it)"
+            return f"VERIFIED FILLABLE with your word list, found in {self.seconds:.1f}s{shown}"
         if self.status == IMPOSSIBLE:
             where = f": no words left for {self.dead_slot.label()}" if self.dead_slot else ""
             return f"IMPOSSIBLE with this word list{where}"
