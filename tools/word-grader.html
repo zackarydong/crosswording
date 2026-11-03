@@ -1,0 +1,631 @@
+<title>Word List Grader</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;800;900&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a grader's desk — the word as live grid squares on the left, filters and queue on the right. */
+:root {
+  --bg: #eef1f5;
+  --panel: #ffffff;
+  --ink: #141b24;
+  --muted: #5b6878;
+  --line: #cfd6e0;
+  --sq: #ffffff;
+  --sq-border: #141b24;
+  --word: #cfe2ff;      /* highlighted-entry blue */
+  --cursor: #ffd84d;    /* active-square yellow */
+  --accent: #1f5fbf;
+  --accent-ink: #ffffff;
+  --g60: #1f8a4c; --g50: #4a8f2a; --g40: #a07a12; --g25: #c0562a; --g10: #b3262e;
+  --chip-bg: #f2f4f8;
+  --display: "Libre Franklin", "Franklin Gothic Medium", "Helvetica Neue", Arial, sans-serif;
+  --body: "Libre Franklin", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b; --panel: #171e28; --ink: #e8edf3; --muted: #93a1b2; --line: #2b3646;
+    --sq: #1d2633; --sq-border: #8ea0b6; --word: #22406b; --cursor: #8a6d00;
+    --accent: #6ea4ff; --accent-ink: #0b1220;
+    --g60: #4cc27f; --g50: #8cc35a; --g40: #d8b03e; --g25: #ee8a5c; --g10: #f06b72;
+    --chip-bg: #212b39; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b; --panel: #171e28; --ink: #e8edf3; --muted: #93a1b2; --line: #2b3646;
+  --sq: #1d2633; --sq-border: #8ea0b6; --word: #22406b; --cursor: #8a6d00;
+  --accent: #6ea4ff; --accent-ink: #0b1220;
+  --g60: #4cc27f; --g50: #8cc35a; --g40: #d8b03e; --g25: #ee8a5c; --g10: #f06b72;
+  --chip-bg: #212b39; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+h1 { font-family: var(--display); font-weight: 900; font-size: 1.6rem; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+h1 .grid-mark { display: inline-grid; grid-template-columns: repeat(3, 8px); gap: 1px; vertical-align: middle; margin-right: 10px; }
+h1 .grid-mark i { width: 8px; height: 8px; background: var(--ink); display: block; }
+h1 .grid-mark i.w { background: transparent; outline: 1px solid var(--ink); }
+.status { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 0.85rem; color: var(--muted); }
+.pill { font-family: var(--mono); font-size: 0.78rem; padding: 3px 8px; border-radius: 999px; background: var(--chip-bg); border: 1px solid var(--line); white-space: nowrap; }
+.pill.ok { color: var(--g60); border-color: color-mix(in srgb, var(--g60) 45%, var(--line)); }
+.pill.warn { color: var(--g40); border-color: color-mix(in srgb, var(--g40) 45%, var(--line)); }
+.banner { background: var(--panel); border: 1px dashed var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.banner p { margin: 0; max-width: 70ch; }
+.banner.drag { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+button, .btn {
+  font: 600 0.9rem var(--body); color: var(--ink); background: var(--panel); border: 1px solid var(--line);
+  border-radius: 7px; padding: 8px 12px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center;
+}
+button:hover, .btn:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible, select:focus-visible, .btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+kbd { font-family: var(--mono); font-size: 0.75rem; padding: 1px 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--chip-bg); color: var(--ink); }
+.layout { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; min-width: 0; }
+.label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+
+/* The word, drawn as an entry in a grid */
+.entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.pos { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.squares-scroll { overflow-x: auto; padding: 14px 2px 10px; }
+.squares { display: inline-flex; border: 2px solid var(--sq-border); }
+.sq { --s: clamp(30px, 7.2vw, 54px); width: var(--s); height: var(--s); position: relative; background: var(--word);
+  border-right: 1px solid var(--sq-border); display: grid; place-items: center;
+  font: 800 calc(var(--s) * 0.56) var(--display); text-transform: uppercase; }
+.sq:last-child { border-right: 0; }
+.sq:first-child { background: var(--cursor); }
+.sq small { position: absolute; top: 2px; left: 3px; font: 600 calc(var(--s) * 0.2) var(--mono); color: var(--ink); opacity: 0.75; }
+.squares.empty .sq { background: var(--sq); color: var(--muted); }
+.meta-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 4px; }
+.score-now { font-family: var(--mono); font-weight: 600; padding: 3px 9px; border-radius: 6px; background: var(--chip-bg); font-variant-numeric: tabular-nums; }
+.tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 16px; }
+@media (min-width: 560px) { .tiers { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.tier { flex-direction: column; gap: 2px; padding: 10px 6px; justify-content: center; text-align: center; border-width: 1px 1px 4px; }
+.tier b { font-size: 0.95rem; }
+.tier span { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+.tier[data-s="60"] { border-bottom-color: var(--g60); }
+.tier[data-s="50"] { border-bottom-color: var(--g50); }
+.tier[data-s="40"] { border-bottom-color: var(--g40); }
+.tier[data-s="25"] { border-bottom-color: var(--g25); }
+.tier[data-s="10"] { border-bottom-color: var(--g10); }
+.tier[data-s="-1"] { border-bottom-color: var(--muted); }
+.tier.flash { background: color-mix(in srgb, var(--accent) 16%, var(--panel)); }
+.nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; color: var(--muted); font-size: 0.85rem; align-items: center; }
+.nav button { font-weight: 600; }
+
+.filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.filters .full { grid-column: 1 / -1; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+input[type=text], input[type=number], select {
+  font: 0.95rem var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; width: 100%; min-width: 0;
+}
+#pattern, #addWord { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 0.9rem; }
+.hint { font-size: 0.8rem; color: var(--muted); margin: 6px 0 0; }
+.match { font-family: var(--mono); font-size: 0.85rem; margin-top: 10px; font-variant-numeric: tabular-nums; }
+.side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+ol.list, ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.list li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 0.88rem; min-width: 0; }
+.list li:last-child { border-bottom: 0; }
+.list li .w { overflow-wrap: anywhere; }
+.list li.cur { font-weight: 600; }
+.chip { font-family: var(--mono); font-size: 0.75rem; padding: 1px 7px; border-radius: 5px; color: #fff; white-space: nowrap; align-self: center; }
+.chip.s60 { background: var(--g60); } .chip.s50 { background: var(--g50); } .chip.s40 { background: var(--g40); }
+.chip.s25 { background: var(--g25); } .chip.s10 { background: var(--g10); } .chip.del { background: var(--muted); }
+.chip.orig { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.add-row { display: grid; grid-template-columns: minmax(0, 1fr) 90px auto; gap: 8px; }
+.export { display: flex; flex-direction: column; gap: 8px; }
+.export button { justify-content: center; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg);
+  padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; max-width: calc(100% - 32px); }
+.empty-note { color: var(--muted); font-size: 0.9rem; padding: 6px 0; }
+@media (prefers-reduced-motion: no-preference) { .tier { transition: background 0.15s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1><span class="grid-mark" aria-hidden="true"><i></i><i class="w"></i><i></i><i class="w"></i><i></i><i class="w"></i><i></i><i class="w"></i><i></i></span>Word List Grader</h1>
+    <div class="status">
+      <span class="pill" id="fileStatus">Example list</span>
+      <span class="pill" id="countStatus">0 entries</span>
+      <span class="pill" id="gradeStatus">0 graded</span>
+      <span class="pill" id="syncStatus">Saved in this browser</span>
+    </div>
+  </header>
+
+  <div class="banner" id="drop">
+    <p id="dropText"><b>You're looking at a short example list.</b> Open your word list (<code>word;score</code> per line, like your <code>.dict</code>) to grade your own words. It is read in this browser and never uploaded; only your grades are saved.</p>
+    <label class="btn primary" for="fileInput" style="background:var(--accent);color:var(--accent-ink);border-color:var(--accent)">Open word list…</label>
+    <input type="file" id="fileInput" accept=".dict,.txt,.csv,text/plain" hidden>
+  </div>
+
+  <div class="layout">
+    <section class="panel" aria-labelledby="entryLabel">
+      <div class="entry-head">
+        <p class="label" id="entryLabel">Current entry</p>
+        <span class="pos" id="pos">–</span>
+      </div>
+      <div class="squares-scroll"><div class="squares" id="squares" aria-live="polite"></div></div>
+      <div class="meta-row">
+        <span class="score-now" id="scoreNow">score –</span>
+        <span id="gradeNow" class="pos"></span>
+      </div>
+      <div class="tiers" id="tiers"></div>
+      <div class="nav">
+        <button id="backBtn" type="button"><kbd>←</kbd> Back</button>
+        <button id="skipBtn" type="button"><kbd>Space</kbd> Skip</button>
+        <button id="undoBtn" type="button"><kbd>Z</kbd> Undo last grade</button>
+        <span>Grades save as you go.</span>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="panel" aria-labelledby="filterLabel">
+        <p class="label" id="filterLabel">Which words</p>
+        <div class="filters">
+          <div class="field full">
+            <label for="pattern">Pattern</label>
+            <input type="text" id="pattern" placeholder="e.g. B?U??   or   *CHE   or   GEO*" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="minLen">Min length</label>
+            <input type="number" id="minLen" min="3" max="25" value="3">
+          </div>
+          <div class="field">
+            <label for="maxLen">Max length</label>
+            <input type="number" id="maxLen" min="3" max="25" value="15">
+          </div>
+          <div class="field">
+            <label for="scoreFilter">Score in list</label>
+            <select id="scoreFilter">
+              <option value="all">Any score</option>
+              <option value="eq50" selected>Unreviewed (50)</option>
+              <option value="lt50">Below 50</option>
+              <option value="ge60">60 and up</option>
+              <option value="mine">Graded by me</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="order">Order</label>
+            <select id="order">
+              <option value="list">List order</option>
+              <option value="alpha">A to Z</option>
+              <option value="shuffle" selected>Shuffled</option>
+            </select>
+          </div>
+          <label class="check full"><input type="checkbox" id="hideGraded" checked> Skip words I've already graded</label>
+        </div>
+        <p class="hint"><kbd>?</kbd> or <kbd>.</kbd> = one letter, <kbd>*</kbd> = any run of letters. Paste a slot from Crosserville, like <code>..S..P</code>.</p>
+        <p class="match" id="matchCount">–</p>
+      </section>
+
+      <section class="panel" aria-labelledby="queueLabel">
+        <p class="label" id="queueLabel">Up next</p>
+        <ol class="list" id="queue"></ol>
+      </section>
+
+      <section class="panel" aria-labelledby="recentLabel">
+        <p class="label" id="recentLabel">Recent grades</p>
+        <ul class="list" id="recent"></ul>
+      </section>
+
+      <section class="panel" aria-labelledby="addLabel">
+        <p class="label" id="addLabel">Add a word</p>
+        <form class="add-row" id="addForm">
+          <input type="text" id="addWord" placeholder="LETMEBECLEAR" autocomplete="off" spellcheck="false" aria-label="Word to add">
+          <select id="addScore" aria-label="Score for new word">
+            <option value="60">60</option><option value="50">50</option><option value="40">40</option><option value="25">25</option><option value="10">10</option>
+          </select>
+          <button type="submit">Add</button>
+        </form>
+      </section>
+
+      <section class="panel" aria-labelledby="exportLabel">
+        <p class="label" id="exportLabel">Export for Crosserville</p>
+        <div class="export">
+          <button class="primary" id="exportFull" type="button">Save full graded list</button>
+          <button id="exportChanges" type="button">Save my changes only</button>
+          <button id="copyChanges" type="button">Copy my changes</button>
+        </div>
+        <p class="hint">Same <code>word;score</code> format as your file, saved as <code>.txt</code>. Removed words are left out of the full list.</p>
+      </section>
+    </aside>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  const TIERS = [
+    { key: "1", label: "Great", score: 60 },
+    { key: "2", label: "Good", score: 50 },
+    { key: "3", label: "Fair", score: 40 },
+    { key: "4", label: "Weak", score: 25 },
+    { key: "5", label: "Junk", score: 10 },
+    { key: "X", label: "Remove", score: -1 },
+  ];
+  const EXAMPLE = `geocache;50\nletmebeclear;50\nvibecheck;50\nbourgeoisie;50\nperfunctory;50\nsituationship;50\nnearanddear;50\nangelinvestor;50\naloe;50\nerne;30\nesne;20\nanoa;30\noleo;50\nstaircase;50\nmudwrestler;60\ncoffeebreak;60\ndownwarddog;60\nbigboxstore;60\nrunningjoke;60\nastaire;50\nenola;50\nirae;30\nseder;50\nareolae;25\nmaple;50\napple;50\nample;60`;
+
+  // ----- state -----
+  let words = [];          // uppercase words in list order
+  let scores = new Int16Array(0);
+  let index = new Map();   // word -> i
+  let lowerCase = true, delim = ";", fileName = "", isExample = true;
+  let edits = {};          // WORD -> score (-1 = remove)
+  let history = [];        // [{word, prev}] for undo
+  let queue = [], qpos = 0;
+  const $ = (id) => document.getElementById(id);
+
+  // ----- storage helpers (per-browser backup; db is the durable copy) -----
+  const LS_KEY = "wlg.edits.v1";
+  try { const s = localStorage.getItem(LS_KEY); if (s) edits = JSON.parse(s) || {}; } catch {}
+  function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(edits)); } catch {} }
+
+  // Cache the opened list in IndexedDB so you don't have to reopen it each visit.
+  function idb() {
+    return new Promise((res, rej) => {
+      try {
+        const r = indexedDB.open("wlg", 1);
+        r.onupgradeneeded = () => r.result.createObjectStore("files");
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      } catch (e) { rej(e); }
+    });
+  }
+  async function cacheFile(name, text) {
+    try { const d = await idb(); d.transaction("files", "readwrite").objectStore("files").put({ name, text }, "list"); } catch {}
+  }
+  async function loadCachedFile() {
+    try {
+      const d = await idb();
+      return await new Promise((res) => {
+        const r = d.transaction("files").objectStore("files").get("list");
+        r.onsuccess = () => res(r.result || null);
+        r.onerror = () => res(null);
+      });
+    } catch { return null; }
+  }
+
+  // ----- parsing -----
+  function parseList(text) {
+    const lines = text.split(/\r?\n/);
+    const sample = lines.filter((l) => l.trim()).slice(0, 500);
+    const cands = [";", "\t", ","];
+    delim = cands.find((d) => sample.filter((l) => l.includes(d)).length > sample.length * 0.9) || null;
+    const w = [], s = [];
+    let lower = 0, upper = 0;
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line || line.startsWith("#")) continue;
+      let word = line, score = 50;
+      if (delim) {
+        const k = line.lastIndexOf(delim);
+        if (k > 0) { word = line.slice(0, k); const n = parseInt(line.slice(k + 1), 10); if (!isNaN(n)) score = n; }
+      }
+      if (/[a-z]/.test(word)) lower++; else upper++;
+      const W = word.toUpperCase().replace(/[^A-Z]/g, "");
+      if (W.length < 2) continue;
+      w.push(W); s.push(score);
+    }
+    words = w; scores = Int16Array.from(s); lowerCase = lower >= upper;
+    index = new Map(); words.forEach((x, i) => { if (!index.has(x)) index.set(x, i); });
+    if (!delim) delim = ";";
+  }
+
+  function scoreOf(word) {
+    if (word in edits) return edits[word];
+    const i = index.get(word);
+    return i === undefined ? null : scores[i];
+  }
+  function origScore(word) { const i = index.get(word); return i === undefined ? null : scores[i]; }
+
+  // ----- filtering -----
+  function patternRegex(p) {
+    p = (p || "").toUpperCase().replace(/\s+/g, "");
+    if (!p) return null;
+    const body = p.replace(/[^A-Z?.*]/g, "").replace(/\?/g, ".").replace(/\*/g, "[A-Z]*");
+    return new RegExp("^" + body + "$");
+  }
+  function rebuildQueue(keepWord) {
+    const rx = patternRegex($("pattern").value);
+    const minL = Math.max(2, parseInt($("minLen").value, 10) || 2);
+    const maxL = Math.max(minL, parseInt($("maxLen").value, 10) || 25);
+    const sf = $("scoreFilter").value, hide = $("hideGraded").checked && sf !== "mine";
+    const out = [];
+    const seen = new Set();
+    const consider = (wd, sc) => {
+      if (wd.length < minL || wd.length > maxL) return;
+      if (rx && !rx.test(wd)) return;
+      const graded = wd in edits;
+      if (sf === "mine" ? !graded : hide && graded) return;
+      if (sf === "eq50" && sc !== 50) return;
+      if (sf === "lt50" && !(sc < 50)) return;
+      if (sf === "ge60" && !(sc >= 60)) return;
+      out.push(wd);
+    };
+    for (let i = 0; i < words.length; i++) {
+      const wd = words[i];
+      if (seen.has(wd)) continue; seen.add(wd);
+      consider(wd, scores[i]);
+    }
+    if (sf === "mine") for (const wd of Object.keys(edits)) if (!index.has(wd)) consider(wd, edits[wd]);
+    const order = $("order").value;
+    if (order === "alpha") out.sort();
+    else if (order === "shuffle") { for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; } }
+    queue = out;
+    qpos = keepWord ? Math.max(0, queue.indexOf(keepWord)) : 0;
+    $("matchCount").textContent = `${queue.length.toLocaleString()} matching ${queue.length === 1 ? "word" : "words"}`;
+    render();
+  }
+
+  // ----- rendering -----
+  function chip(score) {
+    const span = document.createElement("span");
+    if (score === -1) { span.className = "chip del"; span.textContent = "removed"; }
+    else { const t = score >= 60 ? 60 : score >= 50 ? 50 : score >= 40 ? 40 : score >= 25 ? 25 : 10; span.className = "chip s" + t; span.textContent = score; }
+    return span;
+  }
+  function render() {
+    const sq = $("squares");
+    sq.replaceChildren();
+    const word = queue[qpos];
+    if (!word) {
+      sq.classList.add("empty");
+      for (const ch of "DONE") { const d = document.createElement("div"); d.className = "sq"; d.textContent = ch; sq.append(d); }
+      $("pos").textContent = queue.length ? "end of list" : "no matches";
+      $("scoreNow").textContent = queue.length ? "All graded in this filter" : "Change the filter to see words";
+      $("gradeNow").textContent = "";
+    } else {
+      sq.classList.remove("empty");
+      [...word].forEach((ch, i) => {
+        const d = document.createElement("div"); d.className = "sq";
+        if (i === 0) { const n = document.createElement("small"); n.textContent = word.length; d.append(n); }
+        d.append(document.createTextNode(ch)); sq.append(d);
+      });
+      $("pos").textContent = `${(qpos + 1).toLocaleString()} of ${queue.length.toLocaleString()} · ${word.length} letters`;
+      const o = origScore(word);
+      $("scoreNow").textContent = o === null ? "not in list (added)" : `in list: ${o}`;
+      const g = $("gradeNow"); g.replaceChildren();
+      if (word in edits) { g.append("your grade "); g.append(chip(edits[word])); }
+    }
+    const ql = $("queue"); ql.replaceChildren();
+    const next = queue.slice(qpos + 1, qpos + 9);
+    if (!next.length) { const li = document.createElement("li"); li.className = "empty-note"; li.textContent = "Nothing else in this filter."; ql.append(li); }
+    for (const wd of next) {
+      const li = document.createElement("li");
+      const a = document.createElement("span"); a.className = "w"; a.textContent = wd;
+      const s = document.createElement("span"); s.className = "chip orig"; s.textContent = scoreOf(wd) ?? "–";
+      li.append(a, s); ql.append(li);
+    }
+    const rl = $("recent"); rl.replaceChildren();
+    const rec = history.slice(-8).reverse();
+    if (!rec.length) { const li = document.createElement("li"); li.className = "empty-note"; li.textContent = "Grades you give appear here."; rl.append(li); }
+    for (const h of rec) {
+      const li = document.createElement("li");
+      const a = document.createElement("span"); a.className = "w"; a.textContent = h.word;
+      li.append(a, h.word in edits ? chip(edits[h.word]) : chip(origScore(h.word) ?? 50));
+      rl.append(li);
+    }
+    $("countStatus").textContent = `${words.length.toLocaleString()} entries`;
+    const n = Object.keys(edits).length;
+    $("gradeStatus").textContent = `${n.toLocaleString()} graded`;
+    $("fileStatus").textContent = isExample ? "Example list" : fileName;
+    $("undoBtn").disabled = !history.length;
+    $("backBtn").disabled = qpos === 0;
+  }
+
+  // ----- grading -----
+  function advance() {
+    const hide = $("hideGraded").checked && $("scoreFilter").value !== "mine";
+    qpos++;
+    while (hide && qpos < queue.length && queue[qpos] in edits) qpos++;
+    render();
+  }
+  function grade(score) {
+    const word = queue[qpos];
+    if (!word) return;
+    history.push({ word, prev: word in edits ? edits[word] : undefined });
+    edits[word] = score; // keep even when unchanged: it marks the word as reviewed
+    saveLocal(); markDirty(word);
+    flashTier(score);
+    advance();
+  }
+  function undo() {
+    const h = history.pop();
+    if (!h) return;
+    if (h.prev === undefined) delete edits[h.word]; else edits[h.word] = h.prev;
+    saveLocal(); markDirty(h.word);
+    const i = queue.indexOf(h.word);
+    if (i >= 0) qpos = i; else { queue.splice(qpos, 0, h.word); }
+    render();
+    toast(`Undid ${h.word}`);
+  }
+  function flashTier(score) {
+    const b = document.querySelector(`.tier[data-s="${score}"]`);
+    if (!b) return; b.classList.add("flash"); setTimeout(() => b.classList.remove("flash"), 160);
+  }
+
+  // tier buttons
+  for (const t of TIERS) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "tier"; b.dataset.s = t.score;
+    const top = document.createElement("b"); top.textContent = t.label;
+    const sub = document.createElement("span"); sub.textContent = t.score === -1 ? "drop word" : t.score;
+    const k = document.createElement("kbd"); k.textContent = t.key;
+    b.append(k, top, sub);
+    b.addEventListener("click", () => grade(t.score));
+    $("tiers").append(b);
+  }
+
+  $("skipBtn").addEventListener("click", advance);
+  $("backBtn").addEventListener("click", () => { if (qpos > 0) { qpos--; render(); } });
+  $("undoBtn").addEventListener("click", undo);
+  document.addEventListener("keydown", (e) => {
+    const tag = (e.target && e.target.tagName) || "";
+    if (/INPUT|SELECT|TEXTAREA/.test(tag) || e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key;
+    const t = TIERS.find((x) => x.key === k || (x.key === "X" && (k === "x" || k === "X" || k === "Delete")));
+    if (t) { e.preventDefault(); grade(t.score); return; }
+    if (k === " " || k === "ArrowRight") { e.preventDefault(); advance(); }
+    else if (k === "ArrowLeft") { e.preventDefault(); if (qpos > 0) { qpos--; render(); } }
+    else if (k === "z" || k === "Z" || k === "Backspace") { e.preventDefault(); undo(); }
+  });
+
+  let ft = 0;
+  for (const id of ["pattern", "minLen", "maxLen", "scoreFilter", "order", "hideGraded"]) {
+    $(id).addEventListener(id === "pattern" || id === "minLen" || id === "maxLen" ? "input" : "change", () => {
+      clearTimeout(ft); ft = setTimeout(() => rebuildQueue(), 160);
+    });
+  }
+  $("pattern").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); } });
+
+  $("addForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const W = $("addWord").value.toUpperCase().replace(/[^A-Z]/g, "");
+    if (W.length < 3) { toast("Words need at least 3 letters."); return; }
+    const sc = parseInt($("addScore").value, 10);
+    history.push({ word: W, prev: W in edits ? edits[W] : undefined });
+    edits[W] = sc; saveLocal(); markDirty(W);
+    $("addWord").value = "";
+    toast(index.has(W) ? `${W} is already in your list; set to ${sc}` : `Added ${W} at ${sc}`);
+    render();
+  });
+
+  // ----- file loading -----
+  function loadText(name, text, fromCache) {
+    parseList(text);
+    fileName = name; isExample = false;
+    $("dropText").innerHTML = "";
+    const b = document.createElement("b"); b.textContent = name;
+    $("dropText").append(b, document.createTextNode(` is open (${words.length.toLocaleString()} entries)${fromCache ? ", reopened from this browser" : ""}. It stays in this browser; only your grades are saved. Open a different file any time.`));
+    rebuildQueue();
+  }
+  $("fileInput").addEventListener("change", async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const text = await f.text();
+    loadText(f.name, text, false);
+    cacheFile(f.name, text);
+    e.target.value = "";
+  });
+  const drop = $("drop");
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("drag"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("drag"));
+  drop.addEventListener("drop", async (e) => {
+    e.preventDefault(); drop.classList.remove("drag");
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    const text = await f.text(); loadText(f.name, text, false); cacheFile(f.name, text);
+  });
+
+  // ----- export -----
+  function fmt(w) { return lowerCase ? w.toLowerCase() : w; }
+  function changesText() {
+    return Object.keys(edits).sort().map((w) => edits[w] === -1 ? `# removed: ${fmt(w)}` : `${fmt(w)}${delim}${edits[w]}`).join("\n") + "\n";
+  }
+  function fullText() {
+    const out = [];
+    const seen = new Set();
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i]; if (seen.has(w)) continue; seen.add(w);
+      const s = w in edits ? edits[w] : scores[i];
+      if (s === -1) continue;
+      out.push(`${fmt(w)}${delim}${s}`);
+    }
+    for (const w of Object.keys(edits)) if (!index.has(w) && edits[w] !== -1) out.push(`${fmt(w)}${delim}${edits[w]}`);
+    return out.join("\n") + "\n";
+  }
+  let downloads = null;
+  async function save(filename, data) {
+    if (!downloads) { toast("Saving files isn't available here. Use Copy my changes instead."); return; }
+    try { await downloads.save({ filename, data: new Blob([data], { type: "text/plain" }) }); toast(`Saved ${filename}`); }
+    catch (e) {
+      if (e && e.code === "declined") toast("Save cancelled.");
+      else if (e && e.code === "rate_limited") toast("A save is already waiting for you to confirm.");
+      else toast("Couldn't save the file here. Use Copy my changes instead.");
+    }
+  }
+  const base = () => (isExample ? "example" : fileName.replace(/\.[^.]+$/, ""));
+  $("exportFull").addEventListener("click", () => {
+    if (isExample) { toast("Open your word list first; the full export is your list plus your grades."); return; }
+    save(`${base()}-graded.txt`, fullText());
+  });
+  $("exportChanges").addEventListener("click", () => {
+    if (!Object.keys(edits).length) { toast("No grades yet."); return; }
+    save(`${base()}-changes.txt`, changesText());
+  });
+  $("copyChanges").addEventListener("click", () => {
+    const t = changesText();
+    if (!Object.keys(edits).length) { toast("No grades yet."); return; }
+    navigator.clipboard.writeText(t).then(() => toast(`Copied ${Object.keys(edits).length} changes`)).catch(() => toast("Copy isn't allowed here; use Save my changes only."));
+  });
+
+  let toastT = 0;
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 2200); }
+
+  // ----- sync to your account (private: only the artifact owner reads or writes) -----
+  let db = null, dirty = new Set(), flushing = false, flushT = 0, remoteSeen = false;
+  const letterOf = (w) => (/^[A-Z]/.test(w) ? w[0] : "_");
+  function markDirty(word) { dirty.add(letterOf(word)); clearTimeout(flushT); flushT = setTimeout(flush, 800); }
+  function setSync(text, cls) { const p = $("syncStatus"); p.textContent = text; p.className = "pill" + (cls ? " " + cls : ""); }
+  async function flush() {
+    if (!db || flushing || !remoteSeen) return;
+    flushing = true;
+    try {
+      while (dirty.size) {
+        const L = [...dirty][0]; dirty.delete(L);
+        const m = {};
+        for (const w of Object.keys(edits)) if (letterOf(w) === L) m[w] = edits[w];
+        try { await db.doc("grades/" + L).set({ w: m, n: Object.keys(m).length }); }
+        catch (e) {
+          if (e && e.code === "unavailable") { dirty.add(L); await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1000)); }
+          else { setSync("Saved in this browser only", "warn"); db = null; return; }
+        }
+      }
+      setSync("Saved to your account", "ok");
+    } finally { flushing = false; }
+  }
+  (async () => {
+    try { db = await (window.claude && window.claude.use ? window.claude.use("db") : null); } catch { db = null; }
+    if (!db) { setSync("Saved in this browser"); return; }
+    setSync("Connecting…");
+    const timer = setTimeout(() => { if (!remoteSeen) setSync("Account sync not reachable yet", "warn"); }, 10000);
+    db.collection("grades").onSnapshot((snap) => {
+      let changed = false;
+      const firstConfirmed = !remoteSeen && !snap.metadata.fromCache;
+      for (const d of snap.docs) {
+        const m = (d.data() && d.data().w) || {};
+        for (const [w, s] of Object.entries(m)) {
+          // adopt the account's grade unless this browser has an unsaved one for that letter
+          if (!(w in edits) || (remoteSeen && edits[w] !== s && !dirty.has(letterOf(w)))) { edits[w] = s; changed = true; }
+        }
+      }
+      if (firstConfirmed) {
+        remoteSeen = true; clearTimeout(timer);
+        // push anything graded in this browser that the account doesn't have yet
+        const remote = new Set();
+        for (const d of snap.docs) for (const w of Object.keys((d.data() && d.data().w) || {})) remote.add(w);
+        for (const w of Object.keys(edits)) if (!remote.has(w)) dirty.add(letterOf(w));
+        setSync(dirty.size ? "Syncing…" : "Saved to your account", dirty.size ? "" : "ok");
+        if (dirty.size) flush();
+      }
+      if (changed) { saveLocal(); render(); }
+    }, () => { clearTimeout(timer); setSync("Saved in this browser only", "warn"); db = null; });
+  })();
+  (async () => { try { downloads = await (window.claude && window.claude.use ? window.claude.use("downloads") : null); } catch { downloads = null; } })();
+
+  // ----- start -----
+  parseList(EXAMPLE);
+  rebuildQueue();
+  loadCachedFile().then((c) => { if (c && c.text) loadText(c.name, c.text, true); });
+})();
+</script>

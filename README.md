@@ -211,3 +211,7 @@ gridfinder/
   default_config.toml
 tests/         pytest suite
 ```
+
+## Word List Grader
+
+`tools/word-grader.html` is published privately at https://claude.ai/artifact/DC1N4zGX2guDPYmphyVLnn . Open your `.dict` in it (the list stays in your browser), filter by pattern/length/score, grade with keys 1-5 (60/50/40/25/10) or X (remove), and export a `word;score` `.txt` for Crosserville. Grades sync privately to your account.
