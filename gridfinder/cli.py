@@ -199,6 +199,28 @@ def cmd_check(args) -> int:
     return 0 if not v else 2
 
 
+def cmd_screen(args) -> int:
+    from .screen import screen
+
+    cfg = load_config(args.config)
+    _apply_overrides(cfg, args)
+    seeds = load_seeds(args.seeds, cfg["hard"]["size"])
+    path = Path(args.wordlist) if args.wordlist else _default_wordlist()
+    if path is None:
+        sys.exit("screen needs a word list (--wordlist or data/*.dict)")
+    require = [w.upper() for w in (args.require or [])]
+    t = time.time()
+    print(f"screening {len(seeds)} seeds in groups of {args.size} ({args.attempts} attempts each, rng seed {args.seed})...")
+    res = screen(seeds, args.size, str(path), cfg, args.attempts, args.check_top, args.fills, args.fill_time, args.seed, require=require)
+    print(f"done in {time.time() - t:.0f}s\n")
+    print(f"{'verified':>8} {'quick-check pass':>17} {'best score':>10}  seeds")
+    for r in res:
+        print(f"{r.verified:>4}/{r.fills_tried:<3} {r.survivors:>7}/{r.checked:<3} ({r.survival:4.0%}) {r.best_score:>8.1f}  {' + '.join(r.seeds)}")
+    print("\nverified = grids fully filled from your list (of fills tried); quick-check pass = not provably impossible.")
+    print("Next: run `gridfinder find` on a promising combination for verified grids.")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="gridfinder", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -223,6 +245,17 @@ def build_parser() -> argparse.ArgumentParser:
     f.add_argument("--out", default="out", help="output folder (default out/)")
     f.add_argument("--quiet", action="store_true")
     f.set_defaults(func=cmd_find)
+
+    sc = sub.add_parser("screen", help="try every combination of your seeds to see which can share a fillable grid")
+    sc.add_argument("seeds", help="seeds file with all the entries you'd like to use")
+    sc.add_argument("--size", type=int, default=3, help="seeds per combination (default 3)")
+    sc.add_argument("--require", nargs="*", help="only combinations containing these seeds")
+    sc.add_argument("--attempts", type=int, default=1500)
+    sc.add_argument("--check-top", type=int, default=200, help="best-scoring grids to quick-check per combination")
+    sc.add_argument("--fills", type=int, default=4, help="full fill attempts per combination")
+    sc.add_argument("--seed", type=int, default=1)
+    common(sc)
+    sc.set_defaults(func=cmd_screen)
 
     c = sub.add_parser("check", help="validate and score a grid you drew (# = block, . = white)")
     c.add_argument("grid")

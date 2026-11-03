@@ -146,3 +146,16 @@ def test_openness_lowers_score_for_open_center(candidates):
     cfg, cands = candidates
     sc = score_candidate(cands[0], cfg, None)
     assert "open" in sc.parts and 0 <= sc.parts["open"] <= 1
+
+
+def test_screen_runs_and_ranks(tmp_path):
+    from gridfinder.screen import screen
+
+    wl = tmp_path / "w.dict"
+    wl.write_text("abc;50\nabd;50\n")
+    cfg = load_config()
+    res = screen(["ABCDEFGHI", "JKLMNOPQR", "STUVWXYZA"], 2, str(wl), cfg, attempts=20, check_top=5, fills=1, fill_time=0.5, workers=1)
+    assert len(res) == 3  # C(3,2)
+    assert all(r.verified == 0 for r in res)  # tiny list can't fill anything
+    res = screen(["ABCDEFGHI", "JKLMNOPQR", "STUVWXYZA"], 2, str(wl), cfg, attempts=5, workers=1, require=["ABCDEFGHI"])
+    assert len(res) == 2
