@@ -18,6 +18,7 @@
   --accent-ink: #ffffff;
   --g60: #1f8a4c; --g50: #4a8f2a; --g40: #a07a12; --g25: #c0562a; --g10: #b3262e;
   --chip-bg: #f2f4f8;
+  --block: #141b24;
   --display: "Libre Franklin", "Franklin Gothic Medium", "Helvetica Neue", Arial, sans-serif;
   --body: "Libre Franklin", "Helvetica Neue", Arial, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -28,7 +29,7 @@
     --sq: #1d2633; --sq-border: #8ea0b6; --word: #22406b; --cursor: #8a6d00;
     --accent: #6ea4ff; --accent-ink: #0b1220;
     --g60: #4cc27f; --g50: #8cc35a; --g40: #d8b03e; --g25: #ee8a5c; --g10: #f06b72;
-    --chip-bg: #212b39; color-scheme: dark;
+    --chip-bg: #212b39; --block: #04070b; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
@@ -36,7 +37,7 @@
   --sq: #1d2633; --sq-border: #8ea0b6; --word: #22406b; --cursor: #8a6d00;
   --accent: #6ea4ff; --accent-ink: #0b1220;
   --g60: #4cc27f; --g50: #8cc35a; --g40: #d8b03e; --g25: #ee8a5c; --g10: #f06b72;
-  --chip-bg: #212b39; color-scheme: dark;
+  --chip-bg: #212b39; --block: #04070b; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body {
@@ -129,6 +130,48 @@ ol.list, ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-
   padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; max-width: calc(100% - 32px); }
 .empty-note { color: var(--muted); font-size: 0.9rem; padding: 6px 0; }
 @media (prefers-reduced-motion: no-preference) { .tier { transition: background 0.15s; } }
+
+/* ----- tabs + Fill grid ----- */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.tabs a { font-weight: 700; font-size: 0.95rem; color: var(--muted); text-decoration: none; padding: 8px 14px; border: 1px solid transparent; border-bottom: 0; border-radius: 8px 8px 0 0; margin-bottom: -1px; }
+.tabs a[aria-current="page"] { color: var(--ink); background: var(--panel); border-color: var(--line); }
+.tabs a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fill-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .fill-layout { grid-template-columns: minmax(0, 1fr); } }
+.toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.toolbar button, .toolbar .btn { font-size: 0.82rem; padding: 6px 10px; }
+.board-wrap { overflow-x: auto; }
+.board { --c: clamp(17px, calc((100vw - 92px) / 15), 38px); display: grid; grid-template-columns: repeat(15, var(--c)); width: max-content;
+  border: 2px solid var(--sq-border); touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
+.board:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.cell { width: var(--c); height: var(--c); position: relative; background: var(--sq); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  display: grid; place-items: center; font: 700 calc(var(--c) * 0.58) var(--display); cursor: pointer; }
+.cell.block { background: var(--block); cursor: default; }
+.cell.region { background: color-mix(in srgb, var(--accent) 13%, var(--sq)); }
+.cell.entry { background: var(--word); }
+.cell.cursor { background: var(--cursor); }
+.cell small { position: absolute; top: 1px; left: 2px; font: 600 calc(var(--c) * 0.24) var(--mono); color: var(--muted); }
+.userch { color: var(--ink); }
+.fillch { color: var(--accent); }
+.previewch { color: var(--accent); opacity: 0.55; font-style: italic; }
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.fillstatus { font-size: 0.85rem; color: var(--muted); margin: 10px 0 0; min-height: 1.3em; }
+#results { display: flex; flex-direction: column; gap: 10px; }
+.fillcard { border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; background: var(--bg); }
+.fillcard.on { border-color: var(--accent); }
+.fillhead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.9rem; }
+.fillwords { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.fw { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 0.8rem; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 2px 4px 2px 7px; }
+.fw .lab { color: var(--muted); font-size: 0.72rem; }
+button.ban { padding: 0 6px; font-size: 0.95rem; line-height: 1.2; border-radius: 5px; color: var(--g10); }
+.entryrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pat { font-family: var(--mono); font-size: 1.05rem; letter-spacing: 0.12em; background: var(--chip-bg); padding: 3px 8px; border-radius: 6px; }
+.gradebtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.gradebtns button { font-size: 0.8rem; padding: 5px 9px; }
+.cands { margin-top: 10px; }
+.cands li { align-items: center; }
+.candbtn { font-family: var(--mono); font-size: 0.85rem; padding: 3px 8px; }
+textarea#pasteText { width: 100%; min-height: 220px; font: 0.85rem var(--mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 8px; }
 </style>
 
 <div class="wrap">
@@ -141,6 +184,10 @@ ol.list, ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-
       <span class="pill" id="syncStatus">Saved in this browser</span>
     </div>
   </header>
+  <nav class="tabs" aria-label="Views">
+    <a href="#grade" id="tab-grade" aria-current="page">Grade words</a>
+    <a href="#fill" id="tab-fill">Fill grid</a>
+  </nav>
 
   <div class="banner" id="drop">
     <p id="dropText"><b>You're looking at a short example list.</b> Open your word list (<code>word;score</code> per line, like your <code>.dict</code>) to grade your own words. It is read in this browser and never uploaded; only your grades are saved.</p>
@@ -148,6 +195,7 @@ ol.list, ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-
     <input type="file" id="fileInput" accept=".dict,.txt,.csv,text/plain" hidden>
   </div>
 
+  <div id="view-grade">
   <div class="layout">
     <section class="panel" aria-labelledby="entryLabel">
       <div class="entry-head">
@@ -240,6 +288,70 @@ ol.list, ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-
       </section>
     </aside>
   </div>
+  </div>
+
+  <div id="view-fill" hidden>
+    <div class="fill-layout">
+      <section class="panel" aria-labelledby="gridLabel">
+        <p class="label" id="gridLabel">Your grid</p>
+        <div class="toolbar">
+          <button type="button" id="pasteBtn">Paste grid</button>
+          <label class="btn" for="ipuzInput">Open .ipuz</label>
+          <input type="file" id="ipuzInput" accept=".ipuz,.json,application/json" hidden>
+          <button type="button" id="copyGridBtn">Copy grid</button>
+          <button type="button" id="saveIpuzBtn">Save .ipuz</button>
+          <button type="button" id="undoGridBtn">Undo</button>
+          <button type="button" id="clearFillBtn">Clear blue letters</button>
+          <button type="button" id="clearAllBtn">Clear all letters</button>
+        </div>
+        <div class="board-wrap"><div class="board" id="board" tabindex="0" aria-label="Crossword grid. Type letters; arrows move; space switches direction; period toggles a block."></div></div>
+        <p class="hint">Click a square and type. <b>Drag across squares</b> to choose a section to fill. <kbd>Space</kbd> switches across/down, <kbd>.</kbd> toggles a block (mirrored), <kbd>Esc</kbd> clears the section. Black letters are yours; <span class="fillch"><b>blue</b></span> ones came from the filler.</p>
+        <div id="pastePanel" hidden>
+          <p class="hint">Paste 15 rows: <code>#</code> = block, <code>.</code> = empty, letters stay. gridfinder's numbered grids work too.</p>
+          <textarea id="pasteText" spellcheck="false" aria-label="Grid text"></textarea>
+          <div class="row" style="margin-top:8px"><button class="primary" type="button" id="pasteLoad">Load grid</button><button type="button" id="pasteCancel">Cancel</button></div>
+        </div>
+      </section>
+
+      <aside class="side">
+        <section class="panel" aria-labelledby="secLabel">
+          <p class="label" id="secLabel">Fill a section</p>
+          <p id="sectionInfo" style="margin:0"></p>
+          <div class="row" style="margin-top:8px">
+            <button type="button" id="allEmptyBtn">Select every empty square</button>
+            <button type="button" id="clearSecBtn">Clear section</button>
+          </div>
+          <div class="opts">
+            <div class="field">
+              <label for="timeSel">Search time</label>
+              <select id="timeSel"><option value="5">5 seconds</option><option value="10" selected>10 seconds</option><option value="20">20 seconds</option><option value="40">40 seconds</option></select>
+            </div>
+            <div class="field">
+              <label for="floorSel">Crossings outside the section</label>
+              <select id="floorSel"><option value="25">may use 25+ words</option><option value="40" selected>must stay fillable with 40+</option><option value="50">must stay fillable with 50+</option></select>
+            </div>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="primary" type="button" id="suggestBtn">Suggest fills</button>
+            <button type="button" id="cancelBtn" hidden>Stop</button>
+          </div>
+          <p class="fillstatus" id="fillStatus" aria-live="polite">Loading word list…</p>
+          <p class="hint" id="dictInfo"></p>
+        </section>
+
+        <section class="panel" aria-labelledby="resLabel">
+          <p class="label" id="resLabel">Suggested fills</p>
+          <div id="results"></div>
+          <p class="hint">Hover a fill to preview it in the grid. <b>×</b> removes a word from your list for good (it's saved to your grades).</p>
+        </section>
+
+        <section class="panel" aria-labelledby="entryLabel2">
+          <p class="label" id="entryLabel2">Current entry</p>
+          <div id="entryBox"></div>
+        </section>
+      </aside>
+    </div>
+  </div>
 </div>
 <div class="toast" id="toast" hidden></div>
 
@@ -264,6 +376,8 @@ ol.list, ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-
   let history = [];        // [{word, prev}] for undo
   let queue = [], qpos = 0;
   const $ = (id) => document.getElementById(id);
+  const listeners = { dict: [], grade: [] };
+  const emit = (ev, ...a) => listeners[ev].forEach((f) => { try { f(...a); } catch (e) { console.error(e); } });
 
   // ----- storage helpers (per-browser backup; db is the durable copy) -----
   const LS_KEY = "wlg.edits.v1";
@@ -470,6 +584,7 @@ ol.list, ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-
   $("backBtn").addEventListener("click", () => { if (qpos > 0) { qpos--; render(); } });
   $("undoBtn").addEventListener("click", undo);
   document.addEventListener("keydown", (e) => {
+    if ($("view-grade").hidden) return; // the Fill grid tab has its own keys
     const tag = (e.target && e.target.tagName) || "";
     if (/INPUT|SELECT|TEXTAREA/.test(tag) || e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key;
@@ -508,6 +623,7 @@ ol.list, ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-
     const b = document.createElement("b"); b.textContent = name;
     $("dropText").append(b, document.createTextNode(` is open (${words.length.toLocaleString()} entries)${fromCache ? ", reopened from this browser" : ""}. It stays in this browser; only your grades are saved. Open a different file any time.`));
     rebuildQueue();
+    emit("dict");
   }
   $("fileInput").addEventListener("change", async (e) => {
     const f = e.target.files && e.target.files[0];
@@ -575,7 +691,9 @@ ol.list, ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-
   // ----- sync to your account (private: only the artifact owner reads or writes) -----
   let db = null, dirty = new Set(), flushing = false, flushT = 0, remoteSeen = false;
   const letterOf = (w) => (/^[A-Z]/.test(w) ? w[0] : "_");
-  function markDirty(word) { dirty.add(letterOf(word)); clearTimeout(flushT); flushT = setTimeout(flush, 800); }
+  function markDirty(word) {
+    emit("grade", word, word in edits ? edits[word] : (origScore(word) ?? -1));
+    dirty.add(letterOf(word)); clearTimeout(flushT); flushT = setTimeout(flush, 800); }
   function setSync(text, cls) { const p = $("syncStatus"); p.textContent = text; p.className = "pill" + (cls ? " " + cls : ""); }
   async function flush() {
     if (!db || flushing || !remoteSeen) return;
@@ -618,10 +736,38 @@ ol.list, ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-
         setSync(dirty.size ? "Syncing…" : "Saved to your account", dirty.size ? "" : "ok");
         if (dirty.size) flush();
       }
-      if (changed) { saveLocal(); render(); }
+      if (changed) { saveLocal(); render(); emit("dict"); }
     }, () => { clearTimeout(timer); setSync("Saved in this browser only", "warn"); db = null; });
   })();
   (async () => { try { downloads = await (window.claude && window.claude.use ? window.claude.use("downloads") : null); } catch { downloads = null; } })();
+
+  // ----- shared with the Fill grid tab (studio.js) -----
+  window.WLG = {
+    isExample: () => isExample,
+    fileName: () => fileName,
+    words: () => words,
+    scores: () => scores,
+    index: () => index,
+    edits: () => edits,
+    score: (w) => scoreOf(w),
+    setGrade(w, s) {
+      history.push({ word: w, prev: w in edits ? edits[w] : undefined });
+      edits[w] = s; saveLocal(); markDirty(w); render();
+    },
+    on(ev, f) { listeners[ev].push(f); },
+  };
+
+  // tabs: #grade / #fill
+  function route() {
+    const fill = location.hash === "#fill";
+    $("view-grade").hidden = fill;
+    $("view-fill").hidden = !fill;
+    $("tab-grade").toggleAttribute("aria-current", !fill);
+    $("tab-fill").toggleAttribute("aria-current", fill);
+    if (fill) $("tab-fill").setAttribute("aria-current", "page"); else $("tab-grade").setAttribute("aria-current", "page");
+  }
+  window.addEventListener("hashchange", route);
+  route();
 
   // ----- start -----
   parseList(EXAMPLE);
@@ -629,3 +775,4 @@ ol.list, ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-
   loadCachedFile().then((c) => { if (c && c.text) loadText(c.name, c.text, true); });
 })();
 </script>
+<script src="studio.js"></script>

@@ -48,6 +48,9 @@ default_config.toml (all weights/targets/biases).
   impossibility fast). Filler speed (~50 nodes/s) is the bottleneck on
   open grids. Next speedups: bitset domains, or a compiled filler.
 
+## Browser tools
+- `tools/word-grader.html` (+ `studio.js`, `fillworker.js`) is published at https://claude.ai/artifact/DC1N4zGX2guDPYmphyVLnn : Grade words tab + Fill grid tab. Grades live in the artifact's db (`grades/<letter>` docs, owner-only); read them with ArtifactData and rebuild the master list with `python -m gridfinder.joinscores data/XwiWordList.dict data/xwordlist-old.dict --grades data/grades.json --out data/XwiWordList-graded.dict`.
+
 ## Open items / ideas
 - Calibrate Flow: run `gridfinder check` on a few published grids and compare
   with Crosserville/XWord Info.

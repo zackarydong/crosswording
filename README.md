@@ -215,3 +215,5 @@ tests/         pytest suite
 ## Word List Grader
 
 `tools/word-grader.html` is published privately at https://claude.ai/artifact/DC1N4zGX2guDPYmphyVLnn . Open your `.dict` in it (the list stays in your browser), filter by pattern/length/score, grade with keys 1-5 (60/50/40/25/10) or X (remove), and export a `word;score` `.txt` for Crosserville. Grades sync privately to your account.
+
+The page's **Fill grid** tab (`#fill`) fills a section of your grid with the best-scoring words: drag across squares, click *Suggest fills*, and get alternatives ranked by their weakest new entry, then average. `×` on any suggested word removes it from your list (saved as a grade). The search runs in `tools/fillworker.js` (a Web Worker): it tries levels 50 → 55 → 60 (or lower if 50 fails) with arc consistency + backtracking, then collects different fills at the best level. Tests: `tools/test/run_worker_test.js` (run by pytest).
