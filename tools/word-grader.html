@@ -168,7 +168,9 @@ button.ban { padding: 0 6px; font-size: 0.95rem; line-height: 1.2; border-radius
 .pat { font-family: var(--mono); font-size: 1.05rem; letter-spacing: 0.12em; background: var(--chip-bg); padding: 3px 8px; border-radius: 6px; }
 .gradebtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .gradebtns button { font-size: 0.8rem; padding: 5px 9px; }
-.cands { margin-top: 10px; }
+/* fixed size so the panel doesn't jump when you click between entries */
+#entryBox { min-height: 27rem; }
+.cands { margin-top: 10px; height: 22rem; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
 .cands li { align-items: center; }
 .candbtn { font-family: var(--mono); font-size: 0.85rem; padding: 3px 8px; }
 textarea#pasteText { width: 100%; min-height: 220px; font: 0.85rem var(--mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 8px; }
