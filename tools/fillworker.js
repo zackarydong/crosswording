@@ -375,14 +375,20 @@ function solve(m) {
   };
 }
 
-// Words for one slot that keep every crossing fillable.
+// Words for one slot that keep its crossing entries fillable. Only the slot and
+// the entries crossing it are checked, so a dead end elsewhere in the grid
+// doesn't hide good words here; that dead end is reported separately.
 function candidates(m) {
-  const P = prepare(m);
+  const P0 = prepare(m);
   const target = m.slotCells.join(",");
-  const k = P.active.findIndex((s) => s.cells.join(",") === target);
-  if (k < 0) return { words: [] };
-  const E = makeEngine(P, m.cells);
+  const k0 = P0.active.findIndex((s) => s.cells.join(",") === target);
+  if (k0 < 0) return { words: [] };
   const floor = m.floor ?? 30;
+  const keep = new Set([k0]);
+  for (const [, o] of P0.cross[k0]) keep.add(o);
+  const P = subset(P0, [...keep].sort((a, b) => a - b));
+  const k = P.map.get(k0);
+  const E = makeEngine(P, m.cells);
   const doms = P.active.map((s, j) => E.base(j, floor));
   const pres = doms.map((d, j) => E.presOf(j, d));
   const limit = m.limit || 20;
@@ -391,14 +397,26 @@ function candidates(m) {
   const dom = doms[k];
   const t0 = performance.now();
   let checked = 0;
-  for (let j = 0; j < dom.length && out.length < limit && checked < 400 && performance.now() - t0 < 1500; j++) {
+  for (let j = 0; j < dom.length && out.length < limit && checked < 600 && performance.now() - t0 < 1500; j++) {
     checked++;
     const nd = doms.slice(), np = pres.slice();
     nd[k] = Int32Array.of(dom[j]);
     np[k] = E.presOf(k, nd[k]);
     if (E.propagate(nd, np, [k]) < 0) out.push({ word: wordAt(L, dom[j]), score: D[L].score[dom[j]] });
   }
-  return { words: out, total: dom.length };
+  // Is the grid as a whole still fillable? Report the entry where it runs dry.
+  let dead = null;
+  if (performance.now() - t0 < 1500) {
+    const E0 = makeEngine(P0, m.cells);
+    const d0 = P0.active.map((s, j) => E0.base(j, floor));
+    let w = d0.findIndex((d) => !d.length);
+    if (w < 0) {
+      const p0 = d0.map((d, j) => E0.presOf(j, d));
+      w = E0.propagate(d0, p0, P0.active.map((_, j) => j));
+    }
+    if (w >= 0) dead = { cells: P0.active[w].cells, dir: P0.active[w].dir };
+  }
+  return { words: out, total: dom.length, dead };
 }
 
 onmessage = (e) => {

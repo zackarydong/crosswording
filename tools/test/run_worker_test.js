@@ -34,3 +34,20 @@ W.send({ type: "cands", id: 3, n, cells, slotCells: [0, 1, 2], floor: 5, limit: 
 const c = W.out.filter((m) => m.type === "cands").pop();
 assert.deepEqual(c.words.map((w) => w.word).sort(), ["BAD", "BOA"]);
 console.log("fillworker ok");
+
+// Suggestions stay local: a dead end elsewhere in the grid must not hide words
+// for this entry, and it is reported as `dead`.
+{
+  const W2 = loadWorker();
+  W2.send({ type: "dict", lens: dictFromList(["bad;60", "ore;60", "ate;60", "boa;60", "art;60", "dee;60", "qqq;50"].join("\n")) });
+  const g = Array(n * n).fill("#");
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) g[r * n + c] = "";           // fillable corner
+  for (let r = 12; r < 15; r++) for (let c = 12; c < 15; c++) g[r * n + c] = "";      // separate corner...
+  for (let c = 0; c < 15; c++) g[6 * n + c] = "";                                       // ...joined by a 15-letter row nothing fits
+  for (let r = 0; r < 15; r++) g[r * n + 6] = "";                                       // and a column linking them
+  W2.send({ type: "cands", id: 4, n, cells: g, slotCells: [0, 1, 2], floor: 5, limit: 5 });
+  const c2 = W2.out.filter((m) => m.type === "cands").pop();
+  assert.ok(c2.words.length > 0, "local suggestions survive a dead end elsewhere");
+  assert.ok(c2.dead, "dead end reported");
+}
+console.log("fillworker local ok");

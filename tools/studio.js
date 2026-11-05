@@ -393,7 +393,12 @@
       const list = document.querySelector("#entryBox .cands");
       if (!list) return;
       list.replaceChildren();
-      if (!m.words.length) { const li = document.createElement("li"); li.className = "empty-note"; li.textContent = "No word fits with the current crossings."; list.append(li); return; }
+      if (m.dead) {
+        const li = document.createElement("li"); li.className = "warn-note";
+        li.textContent = `Heads up: the grid can't be completed as it stands. ${labelOf(m.dead.cells, m.dead.dir, numbering())} (${m.dead.cells.map((i) => cells[i].ch || ".").join("")}) runs out of words once its crossings are considered.`;
+        list.append(li);
+      }
+      if (!m.words.length) { const li = document.createElement("li"); li.className = "empty-note"; li.textContent = "No word fits with the crossings of this entry."; list.append(li); return; }
       for (const w of m.words) {
         const li = document.createElement("li");
         const b = document.createElement("button");
@@ -409,7 +414,7 @@
         list.append(li);
       }
       const li = document.createElement("li"); li.className = "empty-note";
-      li.textContent = `Top ${m.words.length} of ${m.total.toLocaleString()} matching words that keep every crossing fillable.`;
+      li.textContent = `Top ${m.words.length} of ${m.total.toLocaleString()} matching words that keep this entry's crossings fillable.`;
       list.append(li);
     } else if (m.type === "error") {
       if (m.id === running) running = 0;

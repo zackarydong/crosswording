@@ -11,3 +11,4 @@ def test_fillworker_js():
     out = subprocess.run(["node", str(script)], capture_output=True, text=True, timeout=60)
     assert out.returncode == 0, out.stdout + out.stderr
     assert "fillworker ok" in out.stdout
+    assert "fillworker local ok" in out.stdout
